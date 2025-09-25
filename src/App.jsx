@@ -482,21 +482,29 @@ function App() {
         : []
 
       const filteredMatches = matches.filter(match => {
-        const candidate = match.text || ''
-        const normalizedCandidate = candidate.replace(/\s+/g, ' ').trim()
+        const candidateRaw = match.text || ''
+        const normalizedCandidate = candidateRaw.replace(/\s+/g, ' ').trim()
         const normalizedValue = String(value || '').replace(/\s+/g, ' ').trim()
+        const valueContainsCandidate = normalizedValue && normalizedCandidate
+          ? normalizedValue.includes(normalizedCandidate) || normalizedCandidate.includes(normalizedValue)
+          : false
 
         if (/rodn[ée]|birth/i.test(label || '')) {
-          return /^\d{6}\/\d{3,4}$/.test(candidate)
+          return /^\d{6}\/\d{3,4}$/.test(normalizedCandidate)
         }
 
         if (/cena|částka|zapla[tť]|úhrada|poplatek|hodnota|výše|úrok|rpsn|rate|%/i.test(label || '')) {
-          return candidate === refineMatchText(candidate, label, combinedTargets) && (
-            normalizedCandidate === normalizedValue || /\d/.test(candidate)
-          )
+          const refinedCandidate = refineMatchText(candidateRaw, label, combinedTargets)
+          const refinedValue = refineMatchText(normalizedValue, label, combinedTargets)
+          const refinedMatch = refinedCandidate && refinedValue && refinedCandidate === refinedValue
+          return (refinedCandidate === candidateRaw || refinedCandidate === normalizedCandidate) && (valueContainsCandidate || refinedMatch)
         }
 
-        return normalizedValue ? normalizedCandidate === normalizedValue : candidate.length > 0
+        if (!normalizedValue) {
+          return normalizedCandidate.length > 0
+        }
+
+        return normalizedCandidate === normalizedValue || valueContainsCandidate
       })
 
       const primaryMatch = filteredMatches[0]
