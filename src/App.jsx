@@ -420,6 +420,28 @@ function App() {
       const value = result.value || result.content || ''
       const rawHighlight = result.highlight
 
+      if (typeof result.start === 'number' && typeof result.end === 'number') {
+        const start = Math.max(0, Math.min(result.start, documentText.length))
+        const end = Math.max(start, Math.min(result.end, documentText.length))
+        const highlightSegment = documentText.slice(start, end)
+        const refinedValue = value || highlightSegment
+        const finalLabel = sanitizeLabelText(label) || 'Výsledek'
+
+        return {
+          ...result,
+          id,
+          label: finalLabel,
+          value: refinedValue,
+          matches: [{
+            start,
+            end,
+            text: highlightSegment || refinedValue,
+            id: `${id}-match-0`,
+            resultId: id
+          }]
+        }
+      }
+
       const highlightTargets = Array.isArray(rawHighlight)
         ? rawHighlight.filter(Boolean)
         : rawHighlight ? [rawHighlight].filter(Boolean) : []
@@ -439,22 +461,27 @@ function App() {
         ).filter(Boolean)
       ))
 
-    const matches = combinedTargets.length > 0
-      ? collectMatchesForTargets(combinedTargets, documentSearcher).map((match, matchIndex) => {
-          const adjustedMatch = adjustMatchStart(match, documentText, label, combinedTargets)
-          return {
-            ...match,
-            ...adjustedMatch,
-            text: refineMatchText(match.text, label, combinedTargets),
-            id: `${id}-match-${matchIndex}`,
-            resultId: id
-          }
-        })
-      : []
+      const matches = combinedTargets.length > 0
+        ? collectMatchesForTargets(combinedTargets, documentSearcher).map((match, matchIndex) => {
+            const adjustedMatch = adjustMatchStart(match, documentText, label, combinedTargets)
+            return {
+              ...match,
+              ...adjustedMatch,
+              text: refineMatchText(match.text, label, combinedTargets),
+              id: `${id}-match-${matchIndex}`,
+              resultId: id
+            }
+          })
+        : []
+
+      const primaryMatch = matches[0]
+      const finalLabel = sanitizeLabelText(label) || (primaryMatch ? deriveContextLabel(primaryMatch, documentText) : null) || 'Výsledek'
 
       return {
         ...result,
         id,
+        label: finalLabel,
+        value: value || (primaryMatch ? primaryMatch.text : ''),
         matches
       }
     })
