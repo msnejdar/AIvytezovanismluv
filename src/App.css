@@ -7,22 +7,25 @@
 }
 
 :root {
-  --porsche-burgundy: #8B1A1A;
-  --porsche-cream: #F5F2E8;
-  --porsche-gold: #D4AF37;
-  --porsche-black: #1A1A1A;
-  --porsche-grey: #4A4A4A;
-  --glass-white: rgba(255, 255, 255, 0.08);
-  --glass-border: rgba(255, 255, 255, 0.15);
-  --shadow-dark: rgba(0, 0, 0, 0.3);
-  --shadow-light: rgba(255, 255, 255, 0.1);
+  --cs-blue: #0050B9;
+  --cs-blue-mid: #0A6DE0;
+  --cs-blue-accent: #4DA9FF;
+  --cs-blue-soft: #E6F0FF;
+  --cs-dark: #0B1D3C;
+  --cs-text-light: #F6FAFE;
+  --cs-muted: #5271A2;
+  --cs-orange: #FF6F00;
+  --glass-white: rgba(255, 255, 255, 0.12);
+  --glass-border: rgba(255, 255, 255, 0.25);
+  --shadow-dark: rgba(0, 48, 110, 0.35);
+  --shadow-light: rgba(255, 255, 255, 0.25);
 }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: linear-gradient(135deg, #1A1A1A 0%, #2C1810 100%);
+  background: linear-gradient(135deg, var(--cs-dark) 0%, var(--cs-blue) 90%);
   min-height: 100vh;
-  color: var(--porsche-cream);
+  color: var(--cs-text-light);
   position: relative;
   overflow-x: hidden;
 }
@@ -35,8 +38,8 @@ body::before {
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle at 20% 50%, rgba(139, 26, 26, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(212, 175, 55, 0.05) 0%, transparent 50%);
+    radial-gradient(circle at 20% 50%, rgba(77, 169, 255, 0.25) 0%, transparent 55%),
+    radial-gradient(circle at 80% 80%, rgba(255, 111, 0, 0.18) 0%, transparent 55%);
   pointer-events: none;
   z-index: 1;
 }
@@ -51,7 +54,7 @@ body::before {
 
 .search-panel {
   width: 40%;
-  background: linear-gradient(135deg, var(--glass-white) 0%, rgba(139, 26, 26, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(8, 60, 120, 0.18) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid var(--glass-border);
@@ -69,7 +72,7 @@ body::before {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--porsche-gold), transparent);
+  background: linear-gradient(90deg, transparent, var(--cs-blue-accent), transparent);
   opacity: 0.3;
 }
 
@@ -78,54 +81,56 @@ body::before {
 }
 
 .porsche-badge {
-  background: linear-gradient(135deg, var(--porsche-burgundy), #6B1414);
-  padding: 1.5rem;
-  border-radius: 12px;
+  background: linear-gradient(135deg, var(--cs-blue-mid), var(--cs-blue));
+  padding: 1.4rem 1.8rem;
+  border-radius: 14px;
   text-align: center;
   position: relative;
   overflow: hidden;
   box-shadow: 
-    0 10px 30px var(--shadow-dark),
-    inset 0 1px 0 var(--shadow-light);
+    0 12px 28px rgba(0, 80, 185, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .porsche-badge::before {
   content: '';
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
+  top: -40%;
+  left: -40%;
+  width: 180%;
+  height: 180%;
   background: linear-gradient(
-    45deg,
-    transparent,
-    rgba(212, 175, 55, 0.1),
-    transparent
+    120deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.25) 40%,
+    transparent 80%
   );
-  animation: shine 3s infinite;
+  opacity: 0.4;
+  animation: shine 5s ease-in-out infinite;
 }
 
 @keyframes shine {
-  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+  0% { transform: translateX(-120%) translateY(-80%) rotate(35deg); }
+  50% { transform: translateX(10%) translateY(10%) rotate(35deg); }
+  100% { transform: translateX(120%) translateY(80%) rotate(35deg); }
 }
 
 .badge-text {
-  font-size: 1.8rem;
+  font-size: 1.7rem;
   font-weight: 700;
-  letter-spacing: 0.3em;
-  color: var(--porsche-cream);
-  text-shadow: 2px 2px 4px var(--shadow-dark);
+  letter-spacing: 0.18em;
+  color: var(--cs-text-light);
+  text-shadow: 0 6px 18px rgba(11, 29, 60, 0.45);
   position: relative;
   z-index: 1;
 }
 
 .badge-subtitle {
-  font-size: 0.85rem;
-  font-weight: 300;
-  letter-spacing: 0.2em;
-  color: var(--porsche-gold);
-  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  color: var(--cs-blue-accent);
+  margin-top: 0.45rem;
   text-transform: uppercase;
   position: relative;
   z-index: 1;
@@ -139,41 +144,41 @@ body::before {
 
 .search-input {
   flex: 1;
-  background: rgba(245, 242, 232, 0.05);
-  border: 1px solid var(--glass-border);
-  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(230, 240, 255, 0.16), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 12px;
   padding: 1rem 1.5rem;
   font-size: 0.95rem;
-  color: var(--porsche-cream);
+  color: var(--cs-text-light);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(14px);
 }
 
 .search-input::placeholder {
-  color: rgba(245, 242, 232, 0.4);
+  color: rgba(246, 250, 254, 0.45);
 }
 
 .search-input:focus {
   outline: none;
-  background: rgba(245, 242, 232, 0.1);
-  border-color: var(--porsche-gold);
-  box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
+  background: linear-gradient(135deg, rgba(230, 240, 255, 0.28), rgba(255, 255, 255, 0.12));
+  border-color: var(--cs-blue-accent);
+  box-shadow: 0 0 22px rgba(77, 169, 255, 0.25);
 }
 
 .search-button {
-  width: 50px;
-  height: 50px;
-  background: linear-gradient(135deg, var(--porsche-gold), #B8941F);
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(135deg, var(--cs-orange), #ff8f2a);
   border: none;
-  border-radius: 10px;
+  border-radius: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
-    0 4px 15px rgba(212, 175, 55, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 10px 24px rgba(255, 111, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
   position: relative;
   overflow: hidden;
 }
@@ -185,37 +190,38 @@ body::before {
   left: 50%;
   width: 0;
   height: 0;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.32);
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
+  transition: width 0.6s, height 0.6s, opacity 0.4s;
 }
 
 .search-button:hover::before {
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
+  opacity: 0.6;
 }
 
 .search-button:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.02);
   box-shadow: 
-    0 6px 20px rgba(212, 175, 55, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    0 14px 26px rgba(255, 111, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .search-button:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
 }
 
 .search-button:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
 .search-icon {
   width: 20px;
   height: 20px;
-  color: var(--porsche-black);
+  color: var(--cs-text-light);
   position: relative;
   z-index: 1;
 }
@@ -223,7 +229,7 @@ body::before {
 .loading-spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid var(--porsche-black);
+  border: 2px solid var(--cs-text-light);
   border-top-color: transparent;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -254,38 +260,38 @@ body::before {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--porsche-gold);
+  color: var(--cs-blue-accent);
   margin: 0;
 }
 
 .clear-history-button {
-  background: rgba(139, 26, 26, 0.1);
-  border: 1px solid rgba(139, 26, 26, 0.3);
-  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(230, 240, 255, 0.08));
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
   padding: 0.5rem;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(12px);
 }
 
 .clear-history-button:hover {
-  background: rgba(139, 26, 26, 0.2);
-  border-color: rgba(139, 26, 26, 0.5);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(230, 240, 255, 0.14));
+  border-color: rgba(77, 169, 255, 0.45);
   transform: scale(1.05);
 }
 
 .clear-icon {
   width: 14px;
   height: 14px;
-  color: rgba(139, 26, 26, 0.8);
+  color: rgba(246, 250, 254, 0.85);
   transition: color 0.3s ease;
 }
 
 .clear-history-button:hover .clear-icon {
-  color: var(--porsche-burgundy);
+  color: var(--cs-blue-accent);
 }
 
 .history-list {
@@ -304,23 +310,23 @@ body::before {
 }
 
 .history-list::-webkit-scrollbar-thumb {
-  background: var(--porsche-gold);
+  background: var(--cs-blue-accent);
   border-radius: 3px;
-  opacity: 0.5;
+  opacity: 0.6;
 }
 
 .history-empty {
   text-align: center;
-  color: rgba(245, 242, 232, 0.3);
+  color: rgba(246, 250, 254, 0.45);
   font-size: 0.9rem;
   padding: 2rem;
   font-style: italic;
 }
 
 .history-item {
-  background: rgba(245, 242, 232, 0.03);
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(230, 240, 255, 0.08), rgba(77, 169, 255, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
   padding: 0.9rem 1.2rem;
   margin-bottom: 0.75rem;
   cursor: pointer;
@@ -328,18 +334,18 @@ body::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(12px);
 }
 
 .history-item:hover {
-  background: rgba(245, 242, 232, 0.08);
-  border-color: var(--porsche-gold);
-  transform: translateX(5px);
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.1);
+  background: linear-gradient(135deg, rgba(230, 240, 255, 0.16), rgba(77, 169, 255, 0.2));
+  border-color: rgba(77, 169, 255, 0.45);
+  transform: translateX(5px) translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0, 32, 68, 0.25);
 }
 
 .history-query {
-  color: var(--porsche-cream);
+  color: var(--cs-text-light);
   font-size: 0.9rem;
   font-weight: 500;
   flex: 1;
@@ -350,9 +356,9 @@ body::before {
 }
 
 .history-time {
-  color: var(--porsche-gold);
+  color: var(--cs-blue-accent);
   font-size: 0.75rem;
-  font-weight: 300;
+  font-weight: 400;
   white-space: nowrap;
 }
 
@@ -361,7 +367,7 @@ body::before {
   padding: 2.5rem;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, rgba(26, 26, 26, 0.8), rgba(44, 24, 16, 0.9));
+  background: linear-gradient(135deg, rgba(8, 32, 65, 0.92), rgba(0, 30, 75, 0.88));
   position: relative;
   overflow: hidden;
 }
@@ -371,9 +377,9 @@ body::before {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(212, 175, 55, 0.03) 0%, transparent 70%);
+  width: 640px;
+  height: 640px;
+  background: radial-gradient(circle, rgba(77, 169, 255, 0.12) 0%, transparent 70%);
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -388,10 +394,10 @@ body::before {
 }
 
 .content-title {
-  font-size: 1.5rem;
-  font-weight: 300;
-  color: var(--porsche-cream);
-  letter-spacing: 0.05em;
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: var(--cs-text-light);
+  letter-spacing: 0.03em;
 }
 
 .content-stats {
@@ -401,27 +407,27 @@ body::before {
 
 .stats-text {
   font-size: 0.85rem;
-  color: var(--porsche-gold);
-  font-weight: 300;
-  letter-spacing: 0.05em;
+  color: var(--cs-blue-accent);
+  font-weight: 400;
+  letter-spacing: 0.04em;
 }
 
 .edit-button {
-  background: rgba(245, 242, 232, 0.1);
-  border: 1px solid var(--glass-border);
-  border-radius: 6px;
-  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(230, 240, 255, 0.1));
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 10px;
+  padding: 0.5rem 1.1rem;
   font-size: 0.8rem;
-  color: var(--porsche-cream);
+  color: var(--cs-text-light);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(12px);
 }
 
 .edit-button:hover {
-  background: rgba(245, 242, 232, 0.15);
-  border-color: var(--porsche-gold);
-  color: var(--porsche-gold);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.32), rgba(230, 240, 255, 0.18));
+  border-color: var(--cs-blue-accent);
+  color: var(--cs-blue-accent);
 }
 
 .document-input-container {
@@ -433,32 +439,32 @@ body::before {
 .document-input {
   width: 100%;
   height: 100%;
-  background: rgba(245, 242, 232, 0.03);
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
+  background: linear-gradient(140deg, rgba(12, 51, 102, 0.5), rgba(9, 35, 76, 0.4));
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 14px;
   padding: 1.5rem;
   font-size: 0.95rem;
   line-height: 1.7;
-  color: var(--porsche-cream);
+  color: var(--cs-text-light);
   resize: none;
   font-family: inherit;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(18px);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .document-highlighted {
   width: 100%;
   height: 100%;
   max-height: 100%;
-  background: rgba(245, 242, 232, 0.03);
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
+  background: linear-gradient(140deg, rgba(12, 51, 102, 0.5), rgba(9, 35, 76, 0.4));
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 14px;
   padding: 1.5rem;
   font-size: 0.95rem;
   line-height: 1.7;
-  color: var(--porsche-cream);
+  color: var(--cs-text-light);
   font-family: inherit;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(18px);
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-y: auto;
@@ -466,38 +472,38 @@ body::before {
 }
 
 .document-input::placeholder {
-  color: rgba(245, 242, 232, 0.3);
+  color: rgba(246, 250, 254, 0.35);
 }
 
 .document-input:focus {
   outline: none;
-  background: rgba(245, 242, 232, 0.05);
-  border-color: var(--porsche-gold);
-  box-shadow: 0 0 30px rgba(212, 175, 55, 0.1);
+  background: linear-gradient(140deg, rgba(12, 51, 102, 0.65), rgba(9, 35, 76, 0.55));
+  border-color: rgba(77, 169, 255, 0.6);
+  box-shadow: 0 0 34px rgba(77, 169, 255, 0.25);
 }
 
 .highlight {
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(232, 197, 71, 0.3));
-  color: var(--porsche-cream);
+  background: linear-gradient(135deg, rgba(77, 169, 255, 0.32), rgba(77, 169, 255, 0.22));
+  color: var(--cs-text-light);
   padding: 2px 4px;
   border-radius: 4px;
   font-weight: 500;
-  border: 1px solid rgba(212, 175, 55, 0.5);
+  border: 1px solid rgba(77, 169, 255, 0.45);
   transition: all 0.3s ease;
 }
 
 .highlight.active {
-  background: linear-gradient(135deg, var(--porsche-gold), #E8C547);
-  color: var(--porsche-black);
+  background: linear-gradient(135deg, var(--cs-blue-accent), var(--cs-blue-mid));
+  color: #0b1d3c;
   font-weight: 700;
-  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.6);
+  box-shadow: 0 4px 18px rgba(77, 169, 255, 0.55);
   animation: pulse 2s ease-in-out;
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 4px 16px rgba(212, 175, 55, 0.6); }
-  50% { box-shadow: 0 6px 24px rgba(212, 175, 55, 0.9); }
-  100% { box-shadow: 0 4px 16px rgba(212, 175, 55, 0.6); }
+  0% { box-shadow: 0 4px 16px rgba(77, 169, 255, 0.4); }
+  50% { box-shadow: 0 6px 24px rgba(77, 169, 255, 0.7); }
+  100% { box-shadow: 0 4px 16px rgba(77, 169, 255, 0.4); }
 }
 
 .document-input::-webkit-scrollbar {
@@ -510,21 +516,22 @@ body::before {
 }
 
 .document-input::-webkit-scrollbar-thumb {
-  background: var(--porsche-gold);
+  background: var(--cs-blue-accent);
   border-radius: 4px;
-  opacity: 0.5;
+  opacity: 0.6;
 }
 
 .results-section {
   margin-top: 1.5rem;
   margin-bottom: 1.5rem;
   padding: 1.5rem;
-  background: rgba(245, 242, 232, 0.05);
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
+  background: linear-gradient(140deg, rgba(14, 55, 104, 0.4), rgba(230, 240, 255, 0.08));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+  backdrop-filter: blur(16px);
   max-height: 30vh;
   overflow-y: auto;
+  box-shadow: 0 14px 32px rgba(0, 32, 68, 0.28);
 }
 
 .results-header {
@@ -536,30 +543,32 @@ body::before {
 
 .results-title {
   font-size: 1.1rem;
-  font-weight: 500;
-  color: var(--porsche-gold);
-  letter-spacing: 0.05em;
+  font-weight: 600;
+  color: var(--cs-blue-accent);
+  letter-spacing: 0.04em;
   margin: 0;
+  text-transform: uppercase;
 }
 
 .show-all-button {
-  background: rgba(245, 242, 232, 0.1);
-  border: 1px solid var(--glass-border);
-  border-radius: 6px;
-  padding: 0.4rem 0.8rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(230, 240, 255, 0.08));
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  padding: 0.45rem 0.95rem;
   font-size: 0.75rem;
-  color: var(--porsche-cream);
+  color: var(--cs-text-light);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(12px);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
 }
 
 .show-all-button:hover {
-  background: rgba(245, 242, 232, 0.15);
-  border-color: var(--porsche-gold);
-  color: var(--porsche-gold);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(230, 240, 255, 0.16));
+  border-color: var(--cs-blue-accent);
+  color: var(--cs-blue-accent);
+  transform: translateY(-1px);
 }
 
 .results-container {
@@ -569,17 +578,18 @@ body::before {
 }
 
 .result-item {
-  background: rgba(245, 242, 232, 0.05);
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
+  background: linear-gradient(140deg, rgba(12, 51, 102, 0.5), rgba(14, 60, 120, 0.26));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
   padding: 1.25rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 10px 24px rgba(11, 29, 60, 0.25);
 }
 
 .result-item:hover {
-  background: rgba(245, 242, 232, 0.08);
-  border-color: var(--porsche-gold);
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.1);
+  background: linear-gradient(140deg, rgba(12, 51, 102, 0.65), rgba(14, 60, 120, 0.35));
+  border-color: rgba(77, 169, 255, 0.5);
+  box-shadow: 0 16px 30px rgba(11, 29, 60, 0.35);
 }
 
 .result-item.clickable {
@@ -587,41 +597,40 @@ body::before {
 }
 
 .result-item.clickable:hover {
-  background: rgba(245, 242, 232, 0.12);
-  transform: translateX(3px);
+  transform: translateX(4px) translateY(-1px);
 }
 
 .result-label {
-  font-size: 0.8rem;
-  color: var(--porsche-gold);
-  font-weight: 500;
+  font-size: 0.78rem;
+  color: var(--cs-blue-accent);
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 0.5rem;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.45rem;
 }
 
 .result-value {
-  color: var(--porsche-cream);
-  font-size: 1rem;
+  color: var(--cs-text-light);
+  font-size: 1.05rem;
   font-weight: 600;
   font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
 }
 
 .result-error {
-  border-color: rgba(139, 26, 26, 0.5);
-  background: rgba(139, 26, 26, 0.1);
+  border-color: rgba(192, 29, 29, 0.55);
+  background: rgba(192, 29, 29, 0.12);
 }
 
 .result-query {
   font-size: 0.85rem;
-  color: var(--porsche-gold);
+  color: var(--cs-blue-accent);
   margin-bottom: 0.75rem;
   font-weight: 500;
   letter-spacing: 0.05em;
 }
 
 .result-content {
-  color: var(--porsche-cream);
+  color: var(--cs-text-light);
   line-height: 1.6;
   font-size: 1rem;
   font-weight: 500;
