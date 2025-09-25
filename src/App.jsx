@@ -303,6 +303,44 @@ function App() {
 
   const documentSearcher = useMemo(() => createDocumentSearcher(documentText), [documentText])
 
+  const [isAuthorized, setIsAuthorized] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+    return window.localStorage.getItem('aiSearchAuth') === 'true'
+  })
+  const [passwordInput, setPasswordInput] = useState('')
+  const [authError, setAuthError] = useState('')
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const savedAuth = window.localStorage.getItem('aiSearchAuth') === 'true'
+    if (savedAuth) {
+      setIsAuthorized(true)
+    }
+  }, [])
+
+  const handleAuthorize = (e) => {
+    e.preventDefault()
+    if (passwordInput === 'sporka2025') {
+      setIsAuthorized(true)
+      setAuthError('')
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('aiSearchAuth', 'true')
+      }
+    } else {
+      setAuthError('Nesprávné heslo. Zkuste to znovu.')
+    }
+  }
+
+  const handleLogout = () => {
+    setIsAuthorized(false)
+    setPasswordInput('')
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('aiSearchAuth')
+    }
+  }
+
   const applySearchResults = (rawResults = []) => {
     if (!Array.isArray(rawResults) || rawResults.length === 0) {
       setSearchResults([])
@@ -655,6 +693,32 @@ function App() {
     return renderHighlightedDocument(text, activeMatches, activeResultId)
   }
 
+  if (!isAuthorized) {
+    return (
+      <div className="auth-container">
+        <div className="auth-panel">
+          <h1 className="auth-title">AI Intelligence Search</h1>
+          <p className="auth-subtitle">Zadejte přístupové heslo pro vstup</p>
+          <form className="auth-form" onSubmit={handleAuthorize}>
+            <input
+              type="password"
+              className="auth-input"
+              placeholder="Heslo"
+              value={passwordInput}
+              onChange={(e) => {
+                setPasswordInput(e.target.value)
+                setAuthError('')
+              }}
+            />
+            {authError && <div className="auth-error">{authError}</div>}
+            <button type="submit" className="auth-button">Vstoupit</button>
+          </form>
+          <span className="auth-powered">Powered by Claude</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="app-container">
       <div className="search-panel">
@@ -775,11 +839,6 @@ function App() {
         <div className="content-header">
           <h2 className="content-title">Dokument pro vyhledávání</h2>
           <div className="content-stats">
-            {documentText.length > 0 && (
-              <span className="stats-text">
-                {documentText.length} znaků | {documentText.split(/\s+/).filter(Boolean).length} slov
-              </span>
-            )}
             {highlightRanges.length > 0 && (
               <button 
                 className="edit-button"
