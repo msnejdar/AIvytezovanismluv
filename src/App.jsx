@@ -436,15 +436,16 @@ function App() {
       ]))
 
     const matches = combinedTargets.length > 0
-      ? collectMatchesForTargets(combinedTargets, documentSearcher).map((match, matchIndex) => ({
-          // Pokud je výsledkem číselná hodnota, vezmeme nejvýznamnější numerickou část jako highlight
-          ...match,
-          text: refineMatchText(match.text, label, combinedTargets),
-          start: adjustMatchStart(match, text, label, combinedTargets).start,
-          end: adjustMatchStart(match, text, label, combinedTargets).end,
-          id: `${id}-match-${matchIndex}`,
-          resultId: id
-        }))
+      ? collectMatchesForTargets(combinedTargets, documentSearcher).map((match, matchIndex) => {
+          const adjustedMatch = adjustMatchStart(match, documentText, label, combinedTargets)
+          return {
+            ...match,
+            ...adjustedMatch,
+            text: refineMatchText(match.text, label, combinedTargets),
+            id: `${id}-match-${matchIndex}`,
+            resultId: id
+          }
+        })
       : []
 
       return {
