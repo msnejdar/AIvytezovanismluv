@@ -378,7 +378,7 @@ function App() {
     localStorage.setItem('searchHistory', JSON.stringify(updatedHistory))
 
     try {
-      const response = await fetch('http://localhost:3001/api/search', {
+      const response = await fetch('/api/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
