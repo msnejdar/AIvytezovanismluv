@@ -660,8 +660,8 @@ function App() {
       <div className="search-panel">
         <div className="search-header">
           <div className="porsche-badge">
-            <div className="badge-text">PORSCHE</div>
-            <div className="badge-subtitle">Intelligence Search</div>
+            <div className="badge-text">AI Intelligence Search</div>
+            <div className="badge-subtitle">Powered by Claude</div>
           </div>
         </div>
         
