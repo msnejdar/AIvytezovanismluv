@@ -430,10 +430,14 @@ function App() {
         query: searchQuery
       })
 
-      const combinedTargets = Array.from(new Set([
-        ...highlightTargets,
-        ...detectedTargets
-      ]))
+      const fallbackTargets = value && typeof value === 'string' ? [value] : []
+
+      const combinedTargets = Array.from(new Set(
+        (detectedTargets.length > 0
+          ? detectedTargets
+          : (highlightTargets.length > 0 ? highlightTargets : fallbackTargets)
+        ).filter(Boolean)
+      ))
 
     const matches = combinedTargets.length > 0
       ? collectMatchesForTargets(combinedTargets, documentSearcher).map((match, matchIndex) => {
