@@ -1,0 +1,647 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --porsche-burgundy: #8B1A1A;
+  --porsche-cream: #F5F2E8;
+  --porsche-gold: #D4AF37;
+  --porsche-black: #1A1A1A;
+  --porsche-grey: #4A4A4A;
+  --glass-white: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --shadow-dark: rgba(0, 0, 0, 0.3);
+  --shadow-light: rgba(255, 255, 255, 0.1);
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #1A1A1A 0%, #2C1810 100%);
+  min-height: 100vh;
+  color: var(--porsche-cream);
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(139, 26, 26, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(212, 175, 55, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.app-container {
+  display: flex;
+  height: 100vh;
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+}
+
+.search-panel {
+  width: 40%;
+  background: linear-gradient(135deg, var(--glass-white) 0%, rgba(139, 26, 26, 0.05) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid var(--glass-border);
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-y: auto;
+}
+
+.search-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--porsche-gold), transparent);
+  opacity: 0.3;
+}
+
+.search-header {
+  margin-bottom: 2.5rem;
+}
+
+.porsche-badge {
+  background: linear-gradient(135deg, var(--porsche-burgundy), #6B1414);
+  padding: 1.5rem;
+  border-radius: 12px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 10px 30px var(--shadow-dark),
+    inset 0 1px 0 var(--shadow-light);
+}
+
+.porsche-badge::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(212, 175, 55, 0.1),
+    transparent
+  );
+  animation: shine 3s infinite;
+}
+
+@keyframes shine {
+  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+.badge-text {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: var(--porsche-cream);
+  text-shadow: 2px 2px 4px var(--shadow-dark);
+  position: relative;
+  z-index: 1;
+}
+
+.badge-subtitle {
+  font-size: 0.85rem;
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  color: var(--porsche-gold);
+  margin-top: 0.5rem;
+  text-transform: uppercase;
+  position: relative;
+  z-index: 1;
+}
+
+.search-input-container {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.search-input {
+  flex: 1;
+  background: rgba(245, 242, 232, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  font-size: 0.95rem;
+  color: var(--porsche-cream);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+}
+
+.search-input::placeholder {
+  color: rgba(245, 242, 232, 0.4);
+}
+
+.search-input:focus {
+  outline: none;
+  background: rgba(245, 242, 232, 0.1);
+  border-color: var(--porsche-gold);
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
+}
+
+.search-button {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, var(--porsche-gold), #B8941F);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 15px rgba(212, 175, 55, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.search-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.search-button:hover::before {
+  width: 100px;
+  height: 100px;
+}
+
+.search-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 20px rgba(212, 175, 55, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.search-button:active {
+  transform: translateY(0);
+}
+
+.search-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.search-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--porsche-black);
+  position: relative;
+  z-index: 1;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--porsche-black);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.history-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.history-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--porsche-gold);
+  margin: 0;
+}
+
+.clear-history-button {
+  background: rgba(139, 26, 26, 0.1);
+  border: 1px solid rgba(139, 26, 26, 0.3);
+  border-radius: 6px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(5px);
+}
+
+.clear-history-button:hover {
+  background: rgba(139, 26, 26, 0.2);
+  border-color: rgba(139, 26, 26, 0.5);
+  transform: scale(1.05);
+}
+
+.clear-icon {
+  width: 14px;
+  height: 14px;
+  color: rgba(139, 26, 26, 0.8);
+  transition: color 0.3s ease;
+}
+
+.clear-history-button:hover .clear-icon {
+  color: var(--porsche-burgundy);
+}
+
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.history-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.history-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+  background: var(--porsche-gold);
+  border-radius: 3px;
+  opacity: 0.5;
+}
+
+.history-empty {
+  text-align: center;
+  color: rgba(245, 242, 232, 0.3);
+  font-size: 0.9rem;
+  padding: 2rem;
+  font-style: italic;
+}
+
+.history-item {
+  background: rgba(245, 242, 232, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 0.9rem 1.2rem;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  backdrop-filter: blur(5px);
+}
+
+.history-item:hover {
+  background: rgba(245, 242, 232, 0.08);
+  border-color: var(--porsche-gold);
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.1);
+}
+
+.history-query {
+  color: var(--porsche-cream);
+  font-size: 0.9rem;
+  font-weight: 500;
+  flex: 1;
+  margin-right: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-time {
+  color: var(--porsche-gold);
+  font-size: 0.75rem;
+  font-weight: 300;
+  white-space: nowrap;
+}
+
+.content-panel {
+  flex: 1;
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, rgba(26, 26, 26, 0.8), rgba(44, 24, 16, 0.9));
+  position: relative;
+  overflow: hidden;
+}
+
+.content-panel::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.03) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.content-title {
+  font-size: 1.5rem;
+  font-weight: 300;
+  color: var(--porsche-cream);
+  letter-spacing: 0.05em;
+}
+
+.content-stats {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.stats-text {
+  font-size: 0.85rem;
+  color: var(--porsche-gold);
+  font-weight: 300;
+  letter-spacing: 0.05em;
+}
+
+.edit-button {
+  background: rgba(245, 242, 232, 0.1);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  color: var(--porsche-cream);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(5px);
+}
+
+.edit-button:hover {
+  background: rgba(245, 242, 232, 0.15);
+  border-color: var(--porsche-gold);
+  color: var(--porsche-gold);
+}
+
+.document-input-container {
+  flex: 1;
+  position: relative;
+  height: 100%;
+}
+
+.document-input {
+  width: 100%;
+  height: 100%;
+  background: rgba(245, 242, 232, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--porsche-cream);
+  resize: none;
+  font-family: inherit;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.document-highlighted {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  background: rgba(245, 242, 232, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--porsche-cream);
+  font-family: inherit;
+  backdrop-filter: blur(10px);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-y: auto;
+  cursor: text;
+}
+
+.document-input::placeholder {
+  color: rgba(245, 242, 232, 0.3);
+}
+
+.document-input:focus {
+  outline: none;
+  background: rgba(245, 242, 232, 0.05);
+  border-color: var(--porsche-gold);
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.1);
+}
+
+.highlight {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(232, 197, 71, 0.3));
+  color: var(--porsche-cream);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-weight: 500;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  transition: all 0.3s ease;
+}
+
+.highlight.active {
+  background: linear-gradient(135deg, var(--porsche-gold), #E8C547);
+  color: var(--porsche-black);
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.6);
+  animation: pulse 2s ease-in-out;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 4px 16px rgba(212, 175, 55, 0.6); }
+  50% { box-shadow: 0 6px 24px rgba(212, 175, 55, 0.9); }
+  100% { box-shadow: 0 4px 16px rgba(212, 175, 55, 0.6); }
+}
+
+.document-input::-webkit-scrollbar {
+  width: 8px;
+}
+
+.document-input::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.document-input::-webkit-scrollbar-thumb {
+  background: var(--porsche-gold);
+  border-radius: 4px;
+  opacity: 0.5;
+}
+
+.results-section {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  background: rgba(245, 242, 232, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  max-height: 30vh;
+  overflow-y: auto;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.results-title {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--porsche-gold);
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.show-all-button {
+  background: rgba(245, 242, 232, 0.1);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.75rem;
+  color: var(--porsche-cream);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(5px);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.show-all-button:hover {
+  background: rgba(245, 242, 232, 0.15);
+  border-color: var(--porsche-gold);
+  color: var(--porsche-gold);
+}
+
+.results-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.result-item {
+  background: rgba(245, 242, 232, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.result-item:hover {
+  background: rgba(245, 242, 232, 0.08);
+  border-color: var(--porsche-gold);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.1);
+}
+
+.result-item.clickable {
+  cursor: pointer;
+}
+
+.result-item.clickable:hover {
+  background: rgba(245, 242, 232, 0.12);
+  transform: translateX(3px);
+}
+
+.result-label {
+  font-size: 0.8rem;
+  color: var(--porsche-gold);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.5rem;
+}
+
+.result-value {
+  color: var(--porsche-cream);
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+}
+
+.result-error {
+  border-color: rgba(139, 26, 26, 0.5);
+  background: rgba(139, 26, 26, 0.1);
+}
+
+.result-query {
+  font-size: 0.85rem;
+  color: var(--porsche-gold);
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.result-content {
+  color: var(--porsche-cream);
+  line-height: 1.6;
+  font-size: 1rem;
+  font-weight: 500;
+  white-space: pre-line;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+}
+
+@media (max-width: 1024px) {
+  .app-container {
+    flex-direction: column;
+  }
+  
+  .search-panel {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--glass-border);
+    max-height: 40vh;
+  }
+  
+  .content-panel {
+    height: 60vh;
+  }
+}
