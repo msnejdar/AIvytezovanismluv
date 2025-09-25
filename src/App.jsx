@@ -240,6 +240,13 @@ const adjustMatchStart = (match, text, label, targets = []) => {
   }
 }
 
+const sanitizeLabelText = (label = '') => {
+  return String(label || '')
+    .replace(/[*#`>]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 const collectMatchesForTargets = (targets = [], searcher) => {
   if (!searcher || !Array.isArray(targets)) return []
 
