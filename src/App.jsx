@@ -481,7 +481,25 @@ function App() {
           })
         : []
 
-      const primaryMatch = matches[0]
+      const filteredMatches = matches.filter(match => {
+        const candidate = match.text || ''
+        const normalizedCandidate = candidate.replace(/\s+/g, ' ').trim()
+        const normalizedValue = String(value || '').replace(/\s+/g, ' ').trim()
+
+        if (/rodn[ée]|birth/i.test(label || '')) {
+          return /^\d{6}\/\d{3,4}$/.test(candidate)
+        }
+
+        if (/cena|částka|zapla[tť]|úhrada|poplatek|hodnota|výše|úrok|rpsn|rate|%/i.test(label || '')) {
+          return candidate === refineMatchText(candidate, label, combinedTargets) && (
+            normalizedCandidate === normalizedValue || /\d/.test(candidate)
+          )
+        }
+
+        return normalizedValue ? normalizedCandidate === normalizedValue : candidate.length > 0
+      })
+
+      const primaryMatch = filteredMatches[0]
       const finalLabel = sanitizeLabelText(label) || (primaryMatch ? deriveContextLabel(primaryMatch, documentText) : null) || 'Výsledek'
 
       return {
@@ -489,7 +507,7 @@ function App() {
         id,
         label: finalLabel,
         value: value || (primaryMatch ? primaryMatch.text : ''),
-        matches
+        matches: filteredMatches
       }
     })
 
