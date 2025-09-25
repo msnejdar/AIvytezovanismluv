@@ -160,8 +160,18 @@ const detectHighlightTargets = ({ label, value, query }) => {
     addMatches(/\b\d+[A-Za-z]?\/\d+[A-Za-z]?\b/g, candidate => !/^\d{6}\/\d{3,4}$/.test(candidate.replace(/\s+/g, '')))
   }
 
-  const wantsIdNumber = /číslo|identifik|id|op\b|občansk|listin|spis/i.test(label || '') || /číslo/.test(lowerText)
+  const wantsIdNumber = /číslo|identifik|id|op\b|občansk|listin|spis|cena|částka|zapla[tť]|úhrada|poplatek/i.test(label || '') || /číslo|cena|částka|zapla[tť]|úhrada|poplatek/.test(lowerText)
   if (wantsIdNumber) {
+    const currencyMatches = trimmedText.match(/\d{1,3}(?:[\s\.\,]\d{3})*(?:[\.,]\d+)?\s*(?:Kč|CZK|eur|€)?/gi)
+    if (currencyMatches) {
+      currencyMatches.forEach(match => {
+        const numericPart = match.replace(/[^0-9,\.]/g, '').replace(/,/g, '.')
+        if (numericPart && /\d/.test(numericPart)) {
+          addMatch(match.trim())
+        }
+      })
+    }
+
     addMatches(/\b\d{3,}[\w/-]*\b/g)
   }
 
@@ -175,6 +185,59 @@ const detectHighlightTargets = ({ label, value, query }) => {
   }
 
   return Array.from(targets)
+}
+
+const extractPrimaryNumeric = (text = '') => {
+  if (!text) return null
+  const currencyRegex = /(\d{1,3}(?:[\s\.\,]\d{3})*(?:[\.,]\d+)?)(\s*(?:Kč|CZK|eur|€))?/i
+  const match = text.match(currencyRegex)
+  if (match) {
+    return match[0].trim()
+  }
+
+  const numericRegex = /\d+(?:[\.,]\d+)?/
+  const fallbackMatch = text.match(numericRegex)
+  if (fallbackMatch) {
+    return fallbackMatch[0]
+  }
+
+  return null
+}
+
+const refineMatchText = (originalText = '', label, targets = []) => {
+  if (!originalText) return originalText
+
+  const wantsNumericOnly = /cena|částka|zapla[tť]|úhrada|poplatek|hodnota|výše/i.test(label || '') || targets.some(target => /cena|částka|zapla[tť]|úhrada|poplatek|hodnota|výše/i.test(target))
+
+  if (wantsNumericOnly) {
+    const numeric = extractPrimaryNumeric(originalText)
+    if (numeric) {
+      return numeric
+    }
+  }
+
+  return originalText
+}
+
+const adjustMatchStart = (match, text, label, targets = []) => {
+  if (!match) return match
+
+  const refinedText = refineMatchText(match.text, label, targets)
+  if (refinedText === match.text) {
+    return match
+  }
+
+  const index = text.indexOf(refinedText, match.start)
+  if (index === -1) {
+    return match
+  }
+
+  return {
+    ...match,
+    start: index,
+    end: index + refinedText.length,
+    text: refinedText
+  }
 }
 
 const collectMatchesForTargets = (targets = [], searcher) => {
@@ -372,13 +435,17 @@ function App() {
         ...detectedTargets
       ]))
 
-      const matches = combinedTargets.length > 0
-        ? collectMatchesForTargets(combinedTargets, documentSearcher).map((match, matchIndex) => ({
-            ...match,
-            id: `${id}-match-${matchIndex}`,
-            resultId: id
-          }))
-        : []
+    const matches = combinedTargets.length > 0
+      ? collectMatchesForTargets(combinedTargets, documentSearcher).map((match, matchIndex) => ({
+          // Pokud je výsledkem číselná hodnota, vezmeme nejvýznamnější numerickou část jako highlight
+          ...match,
+          text: refineMatchText(match.text, label, combinedTargets),
+          start: adjustMatchStart(match, text, label, combinedTargets).start,
+          end: adjustMatchStart(match, text, label, combinedTargets).end,
+          id: `${id}-match-${matchIndex}`,
+          resultId: id
+        }))
+      : []
 
       return {
         ...result,
