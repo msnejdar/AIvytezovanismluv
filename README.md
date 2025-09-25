@@ -1,16 +1,25 @@
-# React + Vite
+# AI Intelligence Search
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interní nástroj pro inteligentní vyhledávání v dokumentech postavený na Reactu a Vite.
 
-Currently, two official plugins are available:
+- Frontend: React + Vite (HMR, moderní build tooling)
+- API proxy: Vercel/Express endpoint `api/search`
+- LLM integrace: Claude (Anthropic) s bezpečným předáním API klíče přes environment proměnné
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Lokální spuštění
 
-## React Compiler
+```bash
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Backend (pokud potřebuješ lokálně proxy):
+```bash
+npm run server
+```
 
-## Expanding the ESLint configuration
+## Nasazení
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- Vercel Project → `AIvytezovanismluv`
+- `VITE_CLAUDE_API_KEY` nastav jako environment proměnnou
+- Build: `npm run build`, output `dist`
