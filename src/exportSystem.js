@@ -518,12 +518,12 @@ export class ExportSystem {
     if (!value) return 'empty'
     
     const str = String(value)
-    if (/^\\d{6}\\/\\d{3,4}$/.test(str)) return 'birthNumber'
-    if (/^\\d+(?:[.,]\\d+)?\\s*(?:Kč|CZK|€|EUR)$/i.test(str)) return 'currency'
-    if (/^(\\+420\\s?)?\\d{3}\\s?\\d{3}\\s?\\d{3}$/.test(str)) return 'phone'
-    if (/^[A-Z][a-z]+\\s+[A-Z][a-z]+$/.test(str)) return 'name'
-    if (/^\\d+$/.test(str)) return 'number'
-    if (/^\\d+\\/\\d+$/.test(str)) return 'fraction'
+    if (/^\d{6}\/\d{3,4}$/.test(str)) return 'birthNumber'
+    if (/^\d+(?:[.,]\d+)?\s*(?:Kč|CZK|€|EUR)$/i.test(str)) return 'currency'
+    if (/^(\+420\s?)?\d{3}\s?\d{3}\s?\d{3}$/.test(str)) return 'phone'
+    if (/^[A-Z][a-z]+\s+[A-Z][a-z]+$/.test(str)) return 'name'
+    if (/^\d+$/.test(str)) return 'number'
+    if (/^\d+\/\d+$/.test(str)) return 'fraction'
     
     return 'text'
   }
