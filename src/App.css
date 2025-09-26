@@ -595,6 +595,25 @@ body::before {
   cursor: text;
 }
 
+.document-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 24, 48, 0.6);
+  border-radius: 14px;
+  color: var(--cs-text-light);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  z-index: 5;
+  backdrop-filter: blur(8px);
+}
+
 .document-input::placeholder {
   color: rgba(246, 250, 254, 0.35);
 }
