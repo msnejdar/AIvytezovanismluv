@@ -34,8 +34,13 @@ import {
 import {
   smartHighlight,
   renderAdvancedHighlights,
-  mergeHighlightRanges
+  mergeHighlightRanges,
+  highlightLegalDocument
 } from './advancedHighlighter'
+import {
+  analyzeContractDocument,
+  searchContractDocument
+} from './contractAnalyzer'
 import {
   searchCache,
   globalDebouncer,
@@ -483,8 +488,6 @@ const escapeHtml = (str = '') => {
 
 // ZJEDNODUŠENÁ FUNKCE PRO HIGHLIGHTOVÁNÍ
 const renderHighlightedDocument = (text = '', ranges = []) => {
-  console.log('[Simple Render] Text length:', text.length, 'Ranges:', ranges.length)
-  
   if (!ranges || ranges.length === 0 || !text) {
     return escapeHtml(text)
   }
@@ -496,8 +499,6 @@ const renderHighlightedDocument = (text = '', ranges = []) => {
   const sortedRanges = [...ranges]
     .filter(r => r && typeof r.start === 'number' && typeof r.end === 'number' && r.start < r.end)
     .sort((a, b) => b.start - a.start)
-    
-  console.log('[Simple Render] Valid ranges:', sortedRanges)
   
   // Aplikuj každý range
   sortedRanges.forEach((range, i) => {
@@ -511,23 +512,13 @@ const renderHighlightedDocument = (text = '', ranges = []) => {
       
       const markTag = `<mark class="highlight" style="background-color: yellow; padding: 2px;">${highlightText}</mark>`
       result = beforeText + markTag + afterText
-      
-      console.log(`[Simple Render] Applied highlight ${i}:`, {
-        start, end, 
-        text: text.substring(start, end),
-        hasMarkTag: result.includes('<mark')
-      })
     }
   })
-  
-  console.log('[Simple Render] Final result has highlights:', result.includes('<mark'))
-  console.log('[Simple Render] Preview:', result.substring(0, 300))
   
   return result
 }
 
 function App() {
-  console.log('[App] Component function called')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchHistory, setSearchHistory] = useState([])
   const [documentText, setDocumentText] = useState('')
@@ -538,7 +529,7 @@ function App() {
   const highlightedDocumentRef = useRef(null)
   const [isDocumentPreparing, setIsDocumentPreparing] = useState(false)
   const [normalizedDocument, setNormalizedDocument] = useState(() => buildNormalizedDocument(''))
-  const [searchMode, setSearchMode] = useState('intelligent') // 'simple', 'fuzzy', 'semantic', 'intelligent'
+  const [searchMode, setSearchMode] = useState('contract') // 'simple', 'fuzzy', 'semantic', 'intelligent', 'contract'
   const [performanceStats, setPerformanceStats] = useState(null)
 
   const documentSearcher = useMemo(() => createDocumentSearcher(documentText), [documentText])
@@ -550,16 +541,12 @@ function App() {
   const [searchWarnings, setSearchWarnings] = useState([])
 
   useEffect(() => {
-    console.log('[Auth] useEffect running')
     // Check localStorage for saved authentication
     try {
-      const authValue = localStorage.getItem('aiSearchAuth')
-      console.log('[Auth] Raw localStorage value:', authValue)
-      const savedAuth = authValue === 'true'
-      console.log('[Auth] Checking saved auth:', savedAuth)
+      const savedAuth = localStorage.getItem('aiSearchAuth') === 'true'
       setIsAuthorized(savedAuth)
     } catch (error) {
-      console.error('[Auth] Error checking localStorage:', error)
+      console.error('Error checking localStorage:', error)
       setIsAuthorized(false)
     }
     
@@ -595,22 +582,17 @@ function App() {
     setIsAuthenticating(true)
     setAuthError('')
     
-    console.log('[Auth] Attempting authorization with password:', passwordInput)
-    
     // Add a small delay to show loading state
     await new Promise(resolve => setTimeout(resolve, 500))
     
     if (passwordInput === 'sporka2025') {
-      console.log('[Auth] Password correct, setting authorized to true')
       setIsAuthorized(true)
       try {
         localStorage.setItem('aiSearchAuth', 'true')
-        console.log('[Auth] Saved auth to localStorage')
       } catch (error) {
-        console.error('[Auth] Error saving to localStorage:', error)
+        console.error('Error saving to localStorage:', error)
       }
     } else {
-      console.log('[Auth] Password incorrect')
       setAuthError('Nesprávné heslo. Zkuste to znovu.')
     }
     
@@ -618,36 +600,15 @@ function App() {
   }
 
   const handleLogout = () => {
-    console.log('[Auth] Logging out')
     setIsAuthorized(false)
     setPasswordInput('')
     try {
       localStorage.removeItem('aiSearchAuth')
-      console.log('[Auth] Removed auth from localStorage')
     } catch (error) {
-      console.error('[Auth] Error removing from localStorage:', error)
+      console.error('Error removing from localStorage:', error)
     }
   }
   
-  // Debug function to force logout (for testing)
-  const forceLogout = () => {
-    console.log('[Auth] Force logout triggered')
-    localStorage.clear()
-    setIsAuthorized(false)
-    window.location.reload()
-  }
-  
-  // Expose debug functions globally for browser console
-  useEffect(() => {
-    window.debugAuth = {
-      forceLogout,
-      showAuthState: () => console.log('isAuthorized:', isAuthorized),
-      clearStorage: () => {
-        localStorage.clear()
-        console.log('localStorage cleared')
-      }
-    }
-  }, [isAuthorized])
 
   const applySearchResults = (rawResults = []) => {
     if (!Array.isArray(rawResults) || rawResults.length === 0) {
@@ -688,20 +649,6 @@ function App() {
             resultId: id
           }]
           
-          // Log successful validation
-          if (extractedText !== value) {
-            logMismatch(value, extractedText, {
-              reason: 'AI indices adjusted',
-              type: valueType,
-              indices: { start, end }
-            })
-          }
-        } else {
-          logValidation(extractedText, valueType, false, {
-            expected: value,
-            indices: { start, end },
-            reason: 'Invalid AI indices'
-          })
         }
       }
 
@@ -719,11 +666,6 @@ function App() {
         if (matches.length === 0) {
           const warning = `Hodnota "${value}" (${label || 'bez popisku'}) nebyla nalezena v dokumentu`
           warnings.push(warning)
-          logger.warn('Search', 'Value not found in document', { 
-            value, 
-            label,
-            type: detectValueType(value)
-          })
         }
       }
 
@@ -774,7 +716,6 @@ function App() {
             id: `${id}-extracted-${matchIndex}`,
             resultId: id
           }))
-          console.log(`[Extract] Found ${matches.length} individual values for:`, value)
         }
       }
 
@@ -812,7 +753,6 @@ function App() {
 
     setSearchResults(preparedResults)
     const combinedMatches = preparedResults.flatMap(result => result.matches || [])
-    console.log('Setting highlight ranges:', combinedMatches.length, combinedMatches)
     setHighlightRanges(combinedMatches)
     setActiveResultId(null)
     setSearchWarnings(warnings)
@@ -885,6 +825,34 @@ function App() {
             }))
           }))
           break
+        }
+        
+        case 'contract': {
+          // Contract-specific intelligent search
+          const contractResults = searchContractDocument(documentText, searchQuery, {
+            maxResults: 10,
+            confidenceThreshold: 0.5
+          });
+          
+          results = contractResults.results.map((match, index) => ({
+            id: `contract-${Date.now()}-${index}`,
+            label: match.label,
+            value: match.value,
+            type: match.type,
+            confidence: match.confidence,
+            context: match.context,
+            matches: [{
+              start: match.start,
+              end: match.end,
+              text: match.value,
+              score: match.confidence,
+              confidence: match.confidence,
+              type: match.type,
+              id: `contract-match-${index}`,
+              resultId: `contract-${Date.now()}-${index}`
+            }]
+          }));
+          break;
         }
         
         case 'intelligent':
@@ -987,7 +955,6 @@ function App() {
         }
       }
       
-      console.log(`[${searchMode.toUpperCase()}] Found ${results.length} results for query: ${searchQuery}`)
       applySearchResults(results)
       
     } catch (error) {
@@ -1331,7 +1298,7 @@ function App() {
     })
   }
 
-  // Enhanced intelligent highlighting function
+  // Enhanced intelligent highlighting function with contract specialization
   const highlightDocument = (text, ranges) => {
     console.log('[Smart Highlight] Input:', { text: text?.length, ranges: ranges?.length, mode: searchMode })
     
@@ -1346,7 +1313,24 @@ function App() {
       prioritizeType: 'score'
     })
     
-    // Use smart highlighting with advanced features
+    // Use contract-specific highlighting for contract mode
+    if (searchMode === 'contract') {
+      const contractOptions = {
+        preserveFormatting: true,
+        addDataAttributes: true,
+        showConfidence: true,
+        showLabels: true,
+        groupByType: true,
+        activeRangeId: activeResultId,
+        accessible: true
+      }
+      
+      const result = highlightLegalDocument(text, mergedRanges, contractOptions)
+      console.log('[Contract Highlight] Generated legal document highlights with', mergedRanges.length, 'ranges')
+      return result
+    }
+    
+    // Use smart highlighting with advanced features for other modes
     const highlightOptions = {
       preserveFormatting: true,
       addDataAttributes: true,
@@ -1368,8 +1352,8 @@ function App() {
     return (
       <div className="auth-container">
         <div className="auth-panel">
-          <h1 className="auth-title">AI Intelligence Search</h1>
-          <p className="auth-subtitle">Zadejte přístupové heslo pro vstup</p>
+          <h1 className="auth-title">Legal Document Analyzer</h1>
+          <p className="auth-subtitle">Professional Contract Analysis Platform</p>
           <form className="auth-form" onSubmit={handleAuthorize}>
             <input
               type="password"
@@ -1407,8 +1391,8 @@ function App() {
       <div className="search-panel">
         <div className="search-header">
           <div className="porsche-badge">
-            <div className="badge-text">AI Intelligence Search</div>
-            <div className="badge-subtitle">Powered by Claude</div>
+            <div className="badge-text">Legal Document Analyzer</div>
+            <div className="badge-subtitle">Contract Analysis • Powered by Claude AI</div>
           </div>
         </div>
         
@@ -1416,7 +1400,7 @@ function App() {
           <input
             type="text"
             className="search-input"
-            placeholder="Zadejte vyhledávací dotaz... (zkuste 'local:' pro lokální vyhledávání)"
+            placeholder="Vyhledávat v smlouvě: osobní údaje, částky, termíny, strany..."
             value={searchQuery}
             onChange={(e) => {
               const newQuery = e.target.value
@@ -1451,10 +1435,11 @@ function App() {
             onChange={(e) => setSearchMode(e.target.value)}
             style={{ marginLeft: '8px', padding: '0.5rem', fontSize: '0.8rem' }}
           >
-            <option value="intelligent">Inteligentní</option>
-            <option value="fuzzy">Fuzzy</option>
-            <option value="semantic">Sémantické</option>
-            <option value="simple">Jednoduché</option>
+            <option value="contract">🏛️ Smlouvy</option>
+            <option value="intelligent">🧠 Inteligentní</option>
+            <option value="fuzzy">🔍 Fuzzy</option>
+            <option value="semantic">💡 Sémantické</option>
+            <option value="simple">📄 Jednoduché</option>
           </select>
           <button 
             className="test-button"
@@ -1635,7 +1620,7 @@ function App() {
 
       <div className="content-panel">
         <div className="content-header">
-          <h2 className="content-title">Dokument pro vyhledávání</h2>
+          <h2 className="content-title">Smlouva / Právní dokument</h2>
           <div className="content-stats">
             {highlightRanges.length > 0 && (
               <>
@@ -1665,7 +1650,7 @@ function App() {
         <div className="document-input-container">
           <textarea
             className="document-input"
-            placeholder="Vložte nebo napište text dokumentu, ve kterém chcete vyhledávat..."
+            placeholder="Vložte text smlouvy nebo právního dokumentu pro analýzu a vyhledávání klíčových informací..."
             value={documentText}
             onChange={(e) => setDocumentText(e.target.value)}
             style={{ display: highlightRanges.length > 0 ? 'none' : 'block' }}
