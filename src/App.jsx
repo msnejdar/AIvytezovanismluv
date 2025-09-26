@@ -19,7 +19,63 @@ import {
   logPerformance,
   logError 
 } from './logger'
+import {
+  findFuzzyMatches,
+  advancedFuzzySearch,
+  czechFuzzySearch,
+  realtimeFuzzySearch
+} from './fuzzySearch'
+import {
+  semanticSearch,
+  intelligentSearch,
+  expandQuery,
+  detectIntent
+} from './semanticSearch'
+import {
+  smartHighlight,
+  renderAdvancedHighlights,
+  mergeHighlightRanges
+} from './advancedHighlighter'
+import {
+  searchCache,
+  globalDebouncer,
+  performanceMonitor,
+  initializeOptimizations,
+  createQueryHash
+} from './performanceOptimizer'
+import {
+  rankSearchResults,
+  calculateRelevanceScore
+} from './intelligentRanking'
 
+// Helper function to derive context labels
+const deriveContextLabel = (match, document) => {
+  if (!match || !document) return 'Nalezeno'
+  
+  const context = document.substring(
+    Math.max(0, match.start - 50),
+    Math.min(document.length, match.end + 50)
+  )
+  
+  // Simple label derivation based on context
+  if (/rodné|birth/i.test(context)) return 'Rodné číslo'
+  if (/cena|částka|amount|price/i.test(context)) return 'Částka'
+  if (/jméno|název|name/i.test(context)) return 'Jméno'
+  if (/telefon|phone/i.test(context)) return 'Telefon'
+  if (/adresa|address/i.test(context)) return 'Adresa'
+  if (/datum|date/i.test(context)) return 'Datum'
+  
+  const detectedType = detectValueType(match.text)
+  switch (detectedType) {
+    case 'birthNumber': return 'Rodné číslo'
+    case 'amount': return 'Částka'
+    case 'phone': return 'Telefon'
+    case 'date': return 'Datum'
+    case 'iban': return 'IBAN'
+    case 'bankAccount': return 'Bankovní účet'
+    default: return 'Nalezeno'
+  }
+}
 
 const buildNormalizedDocument = (text = '') => {
   let normalized = ''
@@ -481,6 +537,8 @@ function App() {
   const highlightedDocumentRef = useRef(null)
   const [isDocumentPreparing, setIsDocumentPreparing] = useState(false)
   const [normalizedDocument, setNormalizedDocument] = useState(() => buildNormalizedDocument(''))
+  const [searchMode, setSearchMode] = useState('intelligent') // 'simple', 'fuzzy', 'semantic', 'intelligent'
+  const [performanceStats, setPerformanceStats] = useState(null)
 
   const documentSearcher = useMemo(() => createDocumentSearcher(documentText), [documentText])
 
@@ -500,6 +558,12 @@ function App() {
     if (savedAuth) {
       setIsAuthorized(true)
     }
+    
+    // Initialize performance optimizations
+    initializeOptimizations({
+      enableMemoryWatch: true,
+      enableCaching: true
+    })
   }, [])
 
   // Debounced document normalization
@@ -719,78 +783,213 @@ function App() {
     }
   }, [])
 
-  // Enhanced test function for local highlighting
-  const testLocalHighlight = () => {
+  // Enhanced intelligent search function
+  const performIntelligentSearch = async () => {
     if (!searchQuery.trim() || !documentText.trim()) return
     
-    console.log('[Test] Starting local highlight test')
-    console.log('[Test] Query:', searchQuery)
-    console.log('[Test] Document length:', documentText.length)
+    const timerId = performanceMonitor.startTimer('intelligent-search', {
+      queryLength: searchQuery.length,
+      documentLength: documentText.length,
+      mode: searchMode
+    })
     
-    // Use our new findValueInNormalizedDocument function
-    const matches = findValueInNormalizedDocument(
-      searchQuery,
-      detectValueType(searchQuery),
-      normalizedDocument || createNormalizedDocument(documentText),
-      documentText
-    )
-    
-    console.log('[Test] Found matches:', matches)
-    
-    if (matches.length > 0) {
-      const testResults = matches.map((match, index) => ({
-        id: `test-result-${Date.now()}-${index}`,
-        label: `${detectValueType(searchQuery)} - Test výsledek`,
-        value: match.text,
-        matches: [{
-          start: match.start,
-          end: match.end,
-          text: match.text,
-          id: `test-match-${Date.now()}-${index}`,
-          resultId: `test-result-${Date.now()}-${index}`
-        }]
-      }))
+    try {
+      let results = []
       
-      console.log('[Test] Creating test results:', testResults)
-      applySearchResults(testResults)
-    } else {
-      // Fallback to simple text search
-      const query = searchQuery.toLowerCase()
-      const text = documentText.toLowerCase()
-      const index = text.indexOf(query)
+      switch (searchMode) {
+        case 'fuzzy': {
+          const fuzzyResults = czechFuzzySearch(searchQuery, documentText, {
+            minScore: 0.6,
+            maxResults: 10,
+            contextLength: 50
+          })
+          
+          results = fuzzyResults.map((match, index) => ({
+            id: `fuzzy-${Date.now()}-${index}`,
+            label: `Fuzzy match (${(match.score * 100).toFixed(1)}%)`,
+            value: match.text,
+            matches: [{
+              start: match.start,
+              end: match.end,
+              text: match.text,
+              score: match.score,
+              confidence: match.score,
+              id: `fuzzy-match-${index}`,
+              resultId: `fuzzy-${Date.now()}-${index}`
+            }]
+          }))
+          break
+        }
+        
+        case 'semantic': {
+          const semanticResults = intelligentSearch(searchQuery, documentText, {
+            maxResults: 10,
+            minScore: 0.3,
+            contextWindow: 100
+          })
+          
+          results = semanticResults.map((result, index) => ({
+            id: `semantic-${Date.now()}-${index}`,
+            label: `Semantic match (${result.primaryIntent})`,
+            value: result.matches[0]?.term || 'No match',
+            matches: result.matches.map((match, mIndex) => ({
+              start: match.start || 0,
+              end: match.end || 0,
+              text: match.term,
+              score: match.score,
+              confidence: match.score,
+              id: `semantic-match-${index}-${mIndex}`,
+              resultId: `semantic-${Date.now()}-${index}`
+            }))
+          }))
+          break
+        }
+        
+        case 'intelligent':
+        default: {
+          // Combine multiple search strategies
+          const normalizedDoc = normalizedDocument || createNormalizedDocument(documentText)
+          
+          // 1. Exact matches
+          const exactMatches = findValueInNormalizedDocument(
+            searchQuery,
+            detectValueType(searchQuery),
+            normalizedDoc,
+            documentText
+          )
+          
+          // 2. Fuzzy matches
+          const fuzzyMatches = findFuzzyMatches(searchQuery, documentText, {
+            minScore: 0.5,
+            maxResults: 5,
+            algorithm: 'hybrid'
+          })
+          
+          // 3. Semantic matches
+          const semanticResults = intelligentSearch(searchQuery, documentText, {
+            maxResults: 5,
+            minScore: 0.3
+          })
+          
+          // Combine all results
+          const combinedResults = []
+          
+          // Add exact matches
+          exactMatches.forEach((match, index) => {
+            combinedResults.push({
+              id: `exact-${Date.now()}-${index}`,
+              label: `Exact match - ${detectValueType(match.text)}`,
+              value: match.text,
+              matches: [{
+                start: match.start,
+                end: match.end,
+                text: match.text,
+                score: 1.0,
+                confidence: 1.0,
+                type: 'exact',
+                id: `exact-match-${index}`,
+                resultId: `exact-${Date.now()}-${index}`
+              }]
+            })
+          })
+          
+          // Add fuzzy matches
+          fuzzyMatches.forEach((match, index) => {
+            combinedResults.push({
+              id: `fuzzy-${Date.now()}-${index}`,
+              label: `Fuzzy match (${(match.score * 100).toFixed(1)}%)`,
+              value: match.text,
+              matches: [{
+                start: match.start,
+                end: match.end,
+                text: match.text,
+                score: match.score,
+                confidence: match.score,
+                type: 'fuzzy',
+                id: `fuzzy-match-${index}`,
+                resultId: `fuzzy-${Date.now()}-${index}`
+              }]
+            })
+          })
+          
+          // Add semantic matches
+          semanticResults.forEach((result, index) => {
+            if (result.matches && result.matches.length > 0) {
+              combinedResults.push({
+                id: `semantic-${Date.now()}-${index}`,
+                label: `Semantic match (${result.primaryIntent})`,
+                value: result.matches[0].term,
+                matches: result.matches.map((match, mIndex) => ({
+                  start: match.start || 0,
+                  end: match.end || 0,
+                  text: match.term,
+                  score: match.score,
+                  confidence: match.score,
+                  type: 'semantic',
+                  id: `semantic-match-${index}-${mIndex}`,
+                  resultId: `semantic-${Date.now()}-${index}`
+                }))
+              })
+            }
+          })
+          
+          // Rank results intelligently
+          results = rankSearchResults(combinedResults, searchQuery, documentText, {
+            maxResults: 10,
+            diversityBonus: true,
+            groupSimilar: true,
+            minScore: 0.1
+          })
+          
+          break
+        }
+      }
       
-      if (index !== -1) {
-        // Find original case text
-        const originalText = documentText.substring(index, index + searchQuery.length)
-        
-        const testResults = [{
-          id: Date.now(),
-          label: 'Simple text match',
-          value: originalText,
-          matches: [{
-            start: index,
-            end: index + searchQuery.length,
-            text: originalText,
-            id: `fallback-match-${Date.now()}`,
-            resultId: Date.now()
-          }]
-        }]
-        
-        console.log('[Test] Using fallback text search:', testResults)
-        applySearchResults(testResults)
-      } else {
-        console.log('[Test] Query not found in document')
-        applySearchResults([])
+      console.log(`[${searchMode.toUpperCase()}] Found ${results.length} results for query: ${searchQuery}`)
+      applySearchResults(results)
+      
+    } catch (error) {
+      console.error('Search error:', error)
+      applySearchResults([{
+        id: Date.now(),
+        value: `Search error: ${error.message}`,
+        error: true,
+        matches: []
+      }])
+    } finally {
+      const metric = performanceMonitor.endTimer(timerId)
+      if (metric) {
+        setPerformanceStats({
+          duration: metric.duration,
+          operation: metric.operation,
+          context: metric.context
+        })
       }
     }
+  }
+  
+  // Legacy test function for backwards compatibility
+  const testLocalHighlight = () => {
+    setSearchMode('intelligent')
+    performIntelligentSearch()
   }
 
   const handleSearch = async () => {
     if (!searchQuery.trim() || !documentText.trim()) return
     
-    // For testing - use local highlight first
-    if (searchQuery.includes('test:')) {
-      testLocalHighlight()
+    // Check cache first
+    const cacheKey = createQueryHash(searchQuery, documentText)
+    const cachedResults = searchCache.get(`search-${cacheKey}`)
+    
+    if (cachedResults) {
+      console.log('[Cache] Using cached results for query:', searchQuery)
+      applySearchResults(cachedResults)
+      return
+    }
+    
+    // Use intelligent search for local queries
+    if (searchQuery.includes('local:') || searchQuery.includes('test:')) {
+      performIntelligentSearch()
       return
     }
 
@@ -827,8 +1026,19 @@ function App() {
           const claudeResponse = JSON.parse(data.content[0].text)
           
           if (claudeResponse.results && Array.isArray(claudeResponse.results)) {
-            applySearchResults(claudeResponse.results)
-            logSearch(searchQuery, claudeResponse.results, Date.now() - startTime)
+            // Enhance Claude results with intelligent ranking
+            const rankedResults = rankSearchResults(
+              claudeResponse.results, 
+              searchQuery, 
+              documentText, 
+              { maxResults: 10, diversityBonus: true }
+            )
+            
+            applySearchResults(rankedResults)
+            logSearch(searchQuery, rankedResults, Date.now() - startTime)
+            
+            // Cache successful results
+            searchCache.set(`search-${cacheKey}`, rankedResults)
           } else {
             // Fallback na původní formát
             const results = [{
@@ -839,13 +1049,23 @@ function App() {
             }]
             applySearchResults(results)
             logSearch(searchQuery, results, Date.now() - startTime)
+            
+            // Cache fallback results too
+            searchCache.set(`search-${cacheKey}`, results)
           }
         } catch (parseError) {
           // Pokud není JSON, zkusíme rozdělit odpověď na jednotlivé položky
           const responseText = data.content[0].text
-          const parsedResults = parseSimpleResponse(responseText, documentText)
+          let parsedResults = parseSimpleResponse(responseText, documentText)
           
           if (parsedResults.length > 0) {
+            // Apply intelligent ranking even to parsed results
+            parsedResults = rankSearchResults(
+              parsedResults, 
+              searchQuery, 
+              documentText, 
+              { maxResults: 5, minScore: 0.2 }
+            )
             applySearchResults(parsedResults)
           } else {
             applySearchResults([{
@@ -884,13 +1104,11 @@ function App() {
         errorMessage = 'Nejste připojeni k internetu.'
       }
       
-      // Pro demonstraci - pokud je API nedostupné, ukážeme demo výsledky
+      // Pro demonstraci - pokud je API nedostupné, použijeme inteligentní vyhledávání
       if (documentText.length > 50) {
-        const demoResults = createDemoResults(searchQuery, documentText)
-        if (demoResults.length > 0) {
-          applySearchResults(demoResults)
-          return
-        }
+        console.log('[Fallback] API unavailable, using intelligent search')
+        await performIntelligentSearch()
+        return
       }
       
       applySearchResults([{
@@ -1071,25 +1289,34 @@ function App() {
     })
   }
 
-  // ZJEDNODUŠENÁ FUNKCE
+  // Enhanced intelligent highlighting function
   const highlightDocument = (text, ranges) => {
-    console.log('[Simple Highlight] Input:', { text: text?.length, ranges: ranges?.length })
+    console.log('[Smart Highlight] Input:', { text: text?.length, ranges: ranges?.length, mode: searchMode })
     
     if (!text || !ranges || ranges.length === 0) {
       return escapeHtml(text || '')
     }
 
-    // Always show all highlights, not just active ones
-    const rangesWithSelection = Array.isArray(ranges)
-      ? ranges.map(range => ({
-          start: range.start,
-          end: range.end,
-          id: range.id,
-          resultId: range.resultId
-        }))
-      : []
-
-    return renderHighlightedDocument(text, rangesWithSelection, activeResultId)
+    // Merge overlapping ranges for better display
+    const mergedRanges = mergeHighlightRanges(ranges, {
+      mergeAdjacent: true,
+      adjacentThreshold: 3,
+      prioritizeType: 'score'
+    })
+    
+    // Use smart highlighting with advanced features
+    const highlightOptions = {
+      preserveFormatting: true,
+      addDataAttributes: true,
+      contextualStyling: true,
+      activeRangeId: activeResultId,
+      accessible: true
+    }
+    
+    const result = smartHighlight(text, mergedRanges, highlightOptions)
+    
+    console.log('[Smart Highlight] Generated highlights with', mergedRanges.length, 'ranges')
+    return result
   }
 
   if (!isAuthorized) {
@@ -1132,9 +1359,19 @@ function App() {
           <input
             type="text"
             className="search-input"
-            placeholder="Zadejte vyhledávací dotaz..."
+            placeholder="Zadejte vyhledávací dotaz... (zkuste 'local:' pro lokální vyhledávání)"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              const newQuery = e.target.value
+              setSearchQuery(newQuery)
+              
+              // Real-time search with debouncing for local queries
+              if (newQuery.startsWith('local:') && documentText) {
+                globalDebouncer.debounce('realtime-search', () => {
+                  performIntelligentSearch()
+                }, 500)
+              }
+            }}
             onKeyPress={handleKeyPress}
           />
           <button 
@@ -1151,13 +1388,24 @@ function App() {
               </svg>
             )}
           </button>
+          <select
+            className="search-mode-select"
+            value={searchMode}
+            onChange={(e) => setSearchMode(e.target.value)}
+            style={{ marginLeft: '8px', padding: '0.5rem', fontSize: '0.8rem' }}
+          >
+            <option value="intelligent">Inteligentní</option>
+            <option value="fuzzy">Fuzzy</option>
+            <option value="semantic">Sémantické</option>
+            <option value="simple">Jednoduché</option>
+          </select>
           <button 
             className="test-button"
-            onClick={testLocalHighlight}
+            onClick={performIntelligentSearch}
             disabled={!searchQuery.trim() || !documentText.trim()}
             style={{ marginLeft: '8px', padding: '0.5rem', fontSize: '0.8rem' }}
           >
-            Test
+            Vyhledat
           </button>
           {highlightRanges.length > 0 && (
             <button 
@@ -1174,26 +1422,23 @@ function App() {
           )}
         </div>
         
+        {/* Performance stats */}
+        {performanceStats && (
+          <div className="performance-stats" style={{ margin: '0.5rem 0', fontSize: '0.75rem', color: '#666' }}>
+            Vyhledávání dokončeno za {performanceStats.duration.toFixed(0)}ms
+          </div>
+        )}
+        
         {/* Quick test examples */}
         <div className="quick-tests" style={{ margin: '1rem 0', fontSize: '0.75rem' }}>
-          <div style={{ marginBottom: '0.5rem', color: '#888' }}>Rychlé testy:</div>
+          <div style={{ marginBottom: '0.5rem', color: '#888' }}>Rychlé testy (použijte prefix 'local:'):</div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button 
               onClick={() => {
                 const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
                 setDocumentText(testText)
-                
-                // Přímo nastav highlighty
-                const testHighlights = [{
-                  start: testText.indexOf('940919/1022'),
-                  end: testText.indexOf('940919/1022') + '940919/1022'.length,
-                  id: 'test-rn',
-                  text: '940919/1022'
-                }]
-                
-                console.log('[Test] Setting direct highlights:', testHighlights)
-                setHighlightRanges(testHighlights)
-                setSearchResults([{ id: 1, label: 'RNČ', value: '940919/1022', matches: testHighlights }])
+                setSearchQuery('local:rodné číslo')
+                setSearchMode('intelligent')
               }}
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
             >
@@ -1203,17 +1448,8 @@ function App() {
               onClick={() => {
                 const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
                 setDocumentText(testText)
-                
-                const testHighlights = [{
-                  start: testText.indexOf('7 850 000'),
-                  end: testText.indexOf('7 850 000') + '7 850 000'.length,
-                  id: 'test-amount',
-                  text: '7 850 000'
-                }]
-                
-                console.log('[Test] Setting amount highlights:', testHighlights)
-                setHighlightRanges(testHighlights)
-                setSearchResults([{ id: 2, label: 'Částka', value: '7 850 000', matches: testHighlights }])
+                setSearchQuery('local:cena')
+                setSearchMode('semantic')
               }}
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
             >
@@ -1223,17 +1459,8 @@ function App() {
               onClick={() => {
                 const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
                 setDocumentText(testText)
-                
-                const testHighlights = [{
-                  start: testText.indexOf('Jan Novák'),
-                  end: testText.indexOf('Jan Novák') + 'Jan Novák'.length,
-                  id: 'test-name',
-                  text: 'Jan Novák'
-                }]
-                
-                console.log('[Test] Setting name highlights:', testHighlights)
-                setHighlightRanges(testHighlights)
-                setSearchResults([{ id: 3, label: 'Jméno', value: 'Jan Novák', matches: testHighlights }])
+                setSearchQuery('local:Jan')
+                setSearchMode('fuzzy')
               }}
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
             >
@@ -1242,25 +1469,13 @@ function App() {
             <button 
               onClick={() => {
                 setDocumentText('Tomáš Novotný - 680412/2156, Petra Novotná - 705523/3298, Martin Procházka - 850915/4789')
-                // Simulace Claude odpovědi
-                const mockResults = [{
-                  id: 1,
-                  label: 'Výsledek 1',
-                  value: 'Tomáš Novotný - 680412/2156'
-                }, {
-                  id: 2, 
-                  label: 'Výsledek 2',
-                  value: 'Petra Novotná - 705523/3298'
-                }, {
-                  id: 3,
-                  label: 'Výsledek 3', 
-                  value: 'Martin Procházka - 850915/4789'
-                }]
-                applySearchResults(mockResults)
+                setSearchQuery('local:osoba')
+                setSearchMode('intelligent')
+                performIntelligentSearch()
               }}
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#ff6b6b', color: 'white', border: 'none', borderRadius: '3px' }}
             >
-              Simulate Claude
+              Multi-person test
             </button>
           </div>
         </div>
