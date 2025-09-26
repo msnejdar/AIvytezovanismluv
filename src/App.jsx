@@ -7,7 +7,8 @@ import {
   validators,
   normalizeValue,
   createDebouncedNormalizer,
-  removeDiacritics
+  removeDiacritics,
+  extractIndividualValues
 } from './documentNormalizer'
 import { 
   logger, 
@@ -644,6 +645,21 @@ function App() {
 
         matches = fallbackMatches
       }
+      
+      // If still no matches, try to extract individual values from the response
+      if (matches.length === 0 && value) {
+        const extractedValues = extractIndividualValues(value, documentText)
+        if (extractedValues.length > 0) {
+          matches = extractedValues.map((extractedMatch, matchIndex) => ({
+            start: extractedMatch.start,
+            end: extractedMatch.end,
+            text: extractedMatch.text,
+            id: `${id}-extracted-${matchIndex}`,
+            resultId: id
+          }))
+          console.log(`[Extract] Found ${matches.length} individual values for:`, value)
+        }
+      }
 
       const filteredMatches = matches.filter(match => {
         const candidateRaw = match.text || ''
@@ -1177,6 +1193,29 @@ function App() {
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
             >
               Jméno test
+            </button>
+            <button 
+              onClick={() => {
+                setDocumentText('Tomáš Novotný - 680412/2156, Petra Novotná - 705523/3298, Martin Procházka - 850915/4789')
+                // Simulace Claude odpovědi
+                const mockResults = [{
+                  id: 1,
+                  label: 'Výsledek 1',
+                  value: 'Tomáš Novotný - 680412/2156'
+                }, {
+                  id: 2, 
+                  label: 'Výsledek 2',
+                  value: 'Petra Novotná - 705523/3298'
+                }, {
+                  id: 3,
+                  label: 'Výsledek 3', 
+                  value: 'Martin Procházka - 850915/4789'
+                }]
+                applySearchResults(mockResults)
+              }}
+              style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#ff6b6b', color: 'white', border: 'none', borderRadius: '3px' }}
+            >
+              Simulate Claude
             </button>
           </div>
         </div>

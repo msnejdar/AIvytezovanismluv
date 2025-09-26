@@ -258,6 +258,109 @@ export const findValueInNormalizedDocument = (value, type, normalizedDoc, origin
 };
 
 /**
+ * Extract individual values from complex AI responses
+ */
+export const extractIndividualValues = (responseText, documentText) => {
+  if (!responseText || !documentText) return [];
+  
+  const matches = [];
+  const text = documentText.toLowerCase();
+  
+  // Extract birth numbers (rodná čísla)
+  const birthNumbers = responseText.match(/\d{6}\/\d{3,4}/g) || [];
+  birthNumbers.forEach(bn => {
+    const index = text.indexOf(bn.toLowerCase());
+    if (index !== -1) {
+      matches.push({
+        start: index,
+        end: index + bn.length,
+        text: documentText.substring(index, index + bn.length)
+      });
+    }
+  });
+  
+  // Extract names (Czech names pattern)
+  const names = responseText.match(/[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][a-záčďéěíňóřšťúůýž]+\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][a-záčďéěíňóřšťúůýž]+/g) || [];
+  names.forEach(name => {
+    const index = text.indexOf(name.toLowerCase());
+    if (index !== -1) {
+      matches.push({
+        start: index,
+        end: index + name.length,
+        text: documentText.substring(index, index + name.length)
+      });
+    }
+  });
+  
+  // Extract amounts with various formats
+  const amounts = responseText.match(/\d{1,3}(?:[\s\.,]\d{3})*(?:[\.,]\d{1,2})?\s*(?:Kč|CZK|EUR|€|USD|\$)?/gi) || [];
+  amounts.forEach(amount => {
+    const cleanAmount = amount.replace(/\s+/g, ' ').trim();
+    // Try exact match first
+    let index = documentText.toLowerCase().indexOf(cleanAmount.toLowerCase());
+    if (index === -1) {
+      // Try without currency
+      const numOnly = cleanAmount.replace(/\s*(Kč|CZK|EUR|€|USD|\$)\s*$/i, '').trim();
+      index = documentText.toLowerCase().indexOf(numOnly.toLowerCase());
+      if (index !== -1) {
+        const actualLength = documentText.substring(index).match(/^\d{1,3}(?:[\s\.,]\d{3})*(?:[\.,]\d{1,2})?\s*(?:Kč|CZK|EUR|€|USD|\$)?/i);
+        if (actualLength) {
+          matches.push({
+            start: index,
+            end: index + actualLength[0].length,
+            text: actualLength[0]
+          });
+        }
+      }
+    } else {
+      matches.push({
+        start: index,
+        end: index + cleanAmount.length,
+        text: documentText.substring(index, index + cleanAmount.length)
+      });
+    }
+  });
+  
+  // Extract percentages
+  const percentages = responseText.match(/\d{1,3}(?:[\.,]\d{1,2})?\s*%/g) || [];
+  percentages.forEach(pct => {
+    const index = text.indexOf(pct.toLowerCase());
+    if (index !== -1) {
+      matches.push({
+        start: index,
+        end: index + pct.length,
+        text: documentText.substring(index, index + pct.length)
+      });
+    }
+  });
+  
+  // Extract account numbers
+  const accounts = responseText.match(/\d{2,10}\/\d{4}/g) || [];
+  accounts.forEach(acc => {
+    const index = text.indexOf(acc.toLowerCase());
+    if (index !== -1) {
+      matches.push({
+        start: index,
+        end: index + acc.length,
+        text: documentText.substring(index, index + acc.length)
+      });
+    }
+  });
+  
+  // Remove duplicates by position
+  const unique = [];
+  matches.forEach(match => {
+    const exists = unique.some(u => u.start === match.start && u.end === match.end);
+    if (!exists) {
+      unique.push(match);
+    }
+  });
+  
+  console.log('[Extract] Found individual values:', unique);
+  return unique;
+};
+
+/**
  * Create a debounced version of document normalization
  */
 export const createDebouncedNormalizer = (callback, delay = 300) => {
