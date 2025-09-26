@@ -1,9 +1,25 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import './App.css'
+import {
+  createNormalizedDocument,
+  findValueInNormalizedDocument,
+  detectValueType,
+  validators,
+  normalizeValue,
+  createDebouncedNormalizer,
+  removeDiacritics,
+  extractIndividualValues
+} from './documentNormalizer'
+import { 
+  logger, 
+  logSearch, 
+  logValidation, 
+  logMismatch,
+  logNormalization,
+  logPerformance,
+  logError 
+} from './logger'
 
-const removeDiacritics = (value = '') => {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-}
 
 const buildNormalizedDocument = (text = '') => {
   let normalized = ''
@@ -160,8 +176,18 @@ const detectHighlightTargets = ({ label, value, query }) => {
     addMatches(/\b\d+[A-Za-z]?\/\d+[A-Za-z]?\b/g, candidate => !/^\d{6}\/\d{3,4}$/.test(candidate.replace(/\s+/g, '')))
   }
 
-  const wantsIdNumber = /číslo|identifik|id|op\b|občansk|listin|spis/i.test(label || '') || /číslo/.test(lowerText)
+  const wantsIdNumber = /číslo|identifik|id|op\b|občansk|listin|spis|cena|částka|zapla[tť]|úhrada|poplatek/i.test(label || '') || /číslo|cena|částka|zapla[tť]|úhrada|poplatek/.test(lowerText)
   if (wantsIdNumber) {
+    const currencyMatches = trimmedText.match(/\d{1,3}(?:[\s\.\,]\d{3})*(?:[\.,]\d+)?\s*(?:Kč|CZK|eur|€)?/gi)
+    if (currencyMatches) {
+      currencyMatches.forEach(match => {
+        const numericPart = match.replace(/[^0-9,\.]/g, '').replace(/,/g, '.')
+        if (numericPart && /\d/.test(numericPart)) {
+          addMatch(match.trim())
+        }
+      })
+    }
+
     addMatches(/\b\d{3,}[\w/-]*\b/g)
   }
 
@@ -175,6 +201,132 @@ const detectHighlightTargets = ({ label, value, query }) => {
   }
 
   return Array.from(targets)
+}
+
+const extractPrimaryNumeric = (text = '') => {
+  if (!text) return null
+  const currencyRegex = /(\d{1,3}(?:[\s\.\,]\d{3})*(?:[\.,]\d+)?)(\s*(?:Kč|CZK|eur|€))?/i
+  const match = text.match(currencyRegex)
+  if (match) {
+    return match[0].trim()
+  }
+
+  const numericRegex = /\d+(?:[\.,]\d+)?/
+  const fallbackMatch = text.match(numericRegex)
+  if (fallbackMatch) {
+    return fallbackMatch[0]
+  }
+
+  return null
+}
+
+const refineMatchText = (originalText = '', label, targets = []) => {
+  if (!originalText) return originalText
+
+  const wantsNumericOnly = /cena|částka|zapla[tť]|úhrada|poplatek|hodnota|výše/i.test(label || '') || targets.some(target => /cena|částka|zapla[tť]|úhrada|poplatek|hodnota|výše/i.test(target))
+
+  if (wantsNumericOnly) {
+    const numeric = extractPrimaryNumeric(originalText)
+    if (numeric) {
+      return numeric
+    }
+  }
+
+  return originalText
+}
+
+const adjustMatchStart = (match, text, label, targets = []) => {
+  if (!match) return match
+
+  const refinedText = refineMatchText(match.text, label, targets)
+  if (refinedText === match.text) {
+    return match
+  }
+
+  const index = text.indexOf(refinedText, match.start)
+  if (index === -1) {
+    return match
+  }
+
+  return {
+    ...match,
+    start: index,
+    end: index + refinedText.length,
+    text: refinedText
+  }
+}
+
+const sanitizeLabelText = (label = '') => {
+  return String(label || '')
+    .replace(/[*#`>]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+const normalizeComparisonValue = (value = '', label) => {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+
+  const lower = raw.toLowerCase()
+
+  if (/rodn[ée]|birth/i.test(label || '') || /^\d{6}\s*\/\s*\d{3,4}$/.test(lower.replace(/\s+/g, ''))) {
+    return lower.replace(/\s+/g, '').replace(/(\d{6})(\d{3,4})/, '$1/$2')
+  }
+
+  if (/číslo účtu|účet|iban|account/i.test(label || '') || /\d+\s*\/\s*\d+/.test(lower)) {
+    return lower.replace(/\s+/g, '')
+  }
+
+  if (/iban/i.test(lower)) {
+    return lower.replace(/\s+/g, '')
+  }
+
+  if (/cena|částka|zapla[tť]|úhrada|poplatek|hodnota|výše|úrok|rpsn|rate|%|kč|czk|eur|€/i.test(label || '') || /%/.test(lower)) {
+    const digits = lower.replace(/[^ -]/g, '') // remove diacritics already in doc
+    const hasPercent = /%/.test(lower)
+    const numeric = lower.replace(/[^0-9]/g, '')
+    return hasPercent ? `${numeric}%` : numeric
+  }
+
+  return lower.replace(/\s+/g, '')
+}
+
+const digitsOnly = (value = '') => String(value || '').replace(/[^0-9]/g, '')
+
+const escapeRegExp = (value = '') => {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+const buildLoosePattern = (normalizedValue = '') => {
+  return normalizedValue
+    .split('')
+    .map(char => `[\\s\\*_\.,:-]*${escapeRegExp(char)}`)
+    .join('') + '[\\s\\*_\.,:-]*'
+}
+
+const findMatchesByValue = (value = '', label, document = '', normalizedDoc = null) => {
+  if (!value || !document) return []
+  
+  // Detect value type
+  const valueType = detectValueType(value)
+  
+  // Use pre-normalized document if available
+  const normalized = normalizedDoc || createNormalizedDocument(document)
+  
+  // Find matches using normalized search
+  const matches = findValueInNormalizedDocument(value, valueType, normalized, document)
+  
+  // Log validation for debugging
+  if (matches.length > 0) {
+    console.log('[Search] Found matches for value', { 
+      value, 
+      type: valueType,
+      matchCount: matches.length,
+      matches: matches.map(m => m.text)
+    })
+  }
+  
+  return matches
 }
 
 const collectMatchesForTargets = (targets = [], searcher) => {
@@ -230,65 +382,49 @@ const escapeHtml = (str = '') => {
     .replace(/'/g, '&#39;')
 }
 
-const renderHighlightedDocument = (text = '', ranges = [], activeResultId = null) => {
-  if (!ranges || ranges.length === 0) {
+// ZJEDNODUŠENÁ FUNKCE PRO HIGHLIGHTOVÁNÍ
+const renderHighlightedDocument = (text = '', ranges = []) => {
+  console.log('[Simple Render] Text length:', text.length, 'Ranges:', ranges.length)
+  
+  if (!ranges || ranges.length === 0 || !text) {
     return escapeHtml(text)
   }
 
-  const sortedRanges = ranges
-    .filter(range => range && typeof range.start === 'number' && typeof range.end === 'number' && range.end > range.start)
-    .sort((a, b) => {
-      if (a.start === b.start) return a.end - b.end
-      return a.start - b.start
-    })
-
-  const merged = []
-
-  sortedRanges.forEach(range => {
+  // Jednoduchý přístup - zpracuj jeden po druhém
+  let result = escapeHtml(text)
+  
+  // Seřaď ranges od konce aby se neposunuly indexy
+  const sortedRanges = [...ranges]
+    .filter(r => r && typeof r.start === 'number' && typeof r.end === 'number' && r.start < r.end)
+    .sort((a, b) => b.start - a.start)
+    
+  console.log('[Simple Render] Valid ranges:', sortedRanges)
+  
+  // Aplikuj každý range
+  sortedRanges.forEach((range, i) => {
     const start = Math.max(0, Math.min(range.start, text.length))
     const end = Math.max(start, Math.min(range.end, text.length))
-
-    if (merged.length > 0) {
-      const last = merged[merged.length - 1]
-      if (start <= last.end) {
-        if (end <= last.end) {
-          return
-        }
-        last.end = end
-        return
-      }
+    
+    if (start < end) {
+      const beforeText = result.substring(0, start)
+      const highlightText = escapeHtml(text.substring(start, end))
+      const afterText = result.substring(end)
+      
+      const markTag = `<mark class="highlight" style="background-color: yellow; padding: 2px;">${highlightText}</mark>`
+      result = beforeText + markTag + afterText
+      
+      console.log(`[Simple Render] Applied highlight ${i}:`, {
+        start, end, 
+        text: text.substring(start, end),
+        hasMarkTag: result.includes('<mark')
+      })
     }
-
-    merged.push({
-      start,
-      end,
-      id: range.id,
-      resultId: range.resultId
-    })
   })
-
-  let currentIndex = 0
-  let html = ''
-
-  merged.forEach(range => {
-    if (range.start > currentIndex) {
-      html += escapeHtml(text.slice(currentIndex, range.start))
-    }
-
-    const segment = escapeHtml(text.slice(range.start, range.end))
-    const isActive = activeResultId && range.resultId === activeResultId
-    const className = isActive ? 'highlight active' : 'highlight'
-
-    html += `<mark class="${className}" data-highlight-id="${range.id}"${range.resultId ? ` data-result-id="${range.resultId}"` : ''}>${segment}</mark>`
-
-    currentIndex = range.end
-  })
-
-  if (currentIndex < text.length) {
-    html += escapeHtml(text.slice(currentIndex))
-  }
-
-  return html
+  
+  console.log('[Simple Render] Final result has highlights:', result.includes('<mark'))
+  console.log('[Simple Render] Preview:', result.substring(0, 300))
+  
+  return result
 }
 
 function App() {
@@ -300,6 +436,9 @@ function App() {
   const [highlightRanges, setHighlightRanges] = useState([])
   const [activeResultId, setActiveResultId] = useState(null)
   const highlightedDocumentRef = useRef(null)
+  const [isDocumentPreparing, setIsDocumentPreparing] = useState(false)
+  const [normalizedDocument, setNormalizedDocument] = useState(null)
+  const [showNormalizationOverlay, setShowNormalizationOverlay] = useState(false)
 
   const documentSearcher = useMemo(() => createDocumentSearcher(documentText), [documentText])
 
@@ -311,6 +450,7 @@ function App() {
   })
   const [passwordInput, setPasswordInput] = useState('')
   const [authError, setAuthError] = useState('')
+  const [searchWarnings, setSearchWarnings] = useState([])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -319,6 +459,41 @@ function App() {
       setIsAuthorized(true)
     }
   }, [])
+
+  // Debounced document normalization
+  const normalizeDocument = useCallback(
+    createDebouncedNormalizer((normalized) => {
+      setNormalizedDocument(normalized)
+      setShowNormalizationOverlay(false)
+      logNormalization(
+        documentText.length,
+        normalized.normalized.length,
+        300
+      )
+    }, 300),
+    []
+  )
+
+  useEffect(() => {
+    if (!documentText) {
+      setIsDocumentPreparing(false)
+      setNormalizedDocument(null)
+      setShowNormalizationOverlay(false)
+      return
+    }
+
+    setIsDocumentPreparing(true)
+    setShowNormalizationOverlay(true)
+    
+    // Normalize document after debounce
+    normalizeDocument(documentText)
+    
+    const timer = setTimeout(() => {
+      setIsDocumentPreparing(false)
+    }, 250)
+
+    return () => clearTimeout(timer)
+  }, [documentText, normalizeDocument])
 
   const handleAuthorize = (e) => {
     e.preventDefault()
@@ -346,16 +521,78 @@ function App() {
       setSearchResults([])
       setHighlightRanges([])
       setActiveResultId(null)
+      setSearchWarnings([])
       return
     }
 
     const timestamp = Date.now()
+    const warnings = []
 
     const preparedResults = rawResults.map((result, index) => {
       const id = result.id || `${timestamp}-${index}`
       const label = result.label || null
       const value = result.value || result.content || ''
       const rawHighlight = result.highlight
+
+      // Validate AI-provided indices
+      let matches = []
+      
+      if (typeof result.start === 'number' && typeof result.end === 'number') {
+        const start = Math.max(0, Math.min(result.start, documentText.length))
+        const end = Math.max(0, Math.min(result.end, documentText.length))
+        const extractedText = documentText.slice(start, end)
+        
+        // Detect value type and validate
+        const valueType = detectValueType(value)
+        const isValid = !validators[valueType] || validators[valueType](extractedText)
+        
+        if (isValid && extractedText.trim()) {
+          matches = [{
+            start,
+            end,
+            text: extractedText,
+            id: `${id}-match-0`,
+            resultId: id
+          }]
+          
+          // Log successful validation
+          if (extractedText !== value) {
+            logMismatch(value, extractedText, {
+              reason: 'AI indices adjusted',
+              type: valueType,
+              indices: { start, end }
+            })
+          }
+        } else {
+          logValidation(extractedText, valueType, false, {
+            expected: value,
+            indices: { start, end },
+            reason: 'Invalid AI indices'
+          })
+        }
+      }
+
+      if (matches.length === 0 && value) {
+        const fallbackMatches = findMatchesByValue(value, label, documentText, normalizedDocument)
+        matches = fallbackMatches.map((match, matchIndex) => ({
+          start: match.start,
+          end: match.end,
+          text: match.text,
+          id: `${id}-value-match-${matchIndex}`,
+          resultId: id
+        }))
+        
+        // Log warning if value not found
+        if (matches.length === 0) {
+          const warning = `Hodnota "${value}" (${label || 'bez popisku'}) nebyla nalezena v dokumentu`
+          warnings.push(warning)
+          logger.warn('Search', 'Value not found in document', { 
+            value, 
+            label,
+            type: detectValueType(value)
+          })
+        }
+      }
 
       const highlightTargets = Array.isArray(rawHighlight)
         ? rawHighlight.filter(Boolean)
@@ -367,23 +604,76 @@ function App() {
         query: searchQuery
       })
 
-      const combinedTargets = Array.from(new Set([
-        ...highlightTargets,
-        ...detectedTargets
-      ]))
+      const fallbackTargets = value && typeof value === 'string' ? [value] : []
 
-      const matches = combinedTargets.length > 0
-        ? collectMatchesForTargets(combinedTargets, documentSearcher).map((match, matchIndex) => ({
-            ...match,
-            id: `${id}-match-${matchIndex}`,
+      if (matches.length === 0) {
+        const combinedTargets = Array.from(new Set(
+          (detectedTargets.length > 0
+            ? detectedTargets
+            : (highlightTargets.length > 0 ? highlightTargets : fallbackTargets)
+          ).filter(Boolean)
+        ))
+
+        const fallbackMatches = combinedTargets.length > 0
+          ? collectMatchesForTargets(combinedTargets, documentSearcher).map((match, matchIndex) => {
+              const adjustedMatch = adjustMatchStart(match, documentText, label, combinedTargets)
+              return {
+                ...match,
+                ...adjustedMatch,
+                text: refineMatchText(match.text, label, combinedTargets),
+                id: `${id}-match-${matchIndex}`,
+                resultId: id
+              }
+            })
+          : []
+
+        matches = fallbackMatches
+      }
+      
+      // If still no matches, try to extract individual values from the response
+      if (matches.length === 0 && value) {
+        const extractedValues = extractIndividualValues(value, documentText)
+        if (extractedValues.length > 0) {
+          matches = extractedValues.map((extractedMatch, matchIndex) => ({
+            start: extractedMatch.start,
+            end: extractedMatch.end,
+            text: extractedMatch.text,
+            id: `${id}-extracted-${matchIndex}`,
             resultId: id
           }))
-        : []
+          console.log(`[Extract] Found ${matches.length} individual values for:`, value)
+        }
+      }
+
+      const filteredMatches = matches.filter(match => {
+        const candidateRaw = match.text || ''
+        const normalizedCandidate = normalizeComparisonValue(candidateRaw, label)
+        const normalizedValue = normalizeComparisonValue(value, label)
+
+        if (!normalizedCandidate && !normalizedValue) {
+          return false
+        }
+
+        if (normalizedValue && normalizedCandidate) {
+          if (normalizedCandidate === normalizedValue) {
+            return true
+          }
+
+          return normalizeComparisonValue(candidateRaw.replace(/^[^0-9]+|[^0-9]+$/g, ''), label) === normalizedValue
+        }
+
+        return Boolean(normalizedCandidate)
+      })
+
+      const primaryMatch = filteredMatches[0]
+      const finalLabel = sanitizeLabelText(label) || (primaryMatch ? deriveContextLabel(primaryMatch, documentText) : null) || 'Výsledek'
 
       return {
         ...result,
         id,
-        matches
+        label: finalLabel,
+        value: value || (primaryMatch ? primaryMatch.text : ''),
+        matches: filteredMatches
       }
     })
 
@@ -392,6 +682,7 @@ function App() {
     console.log('Setting highlight ranges:', combinedMatches.length, combinedMatches)
     setHighlightRanges(combinedMatches)
     setActiveResultId(null)
+    setSearchWarnings(warnings)
   }
 
   useEffect(() => {
@@ -401,10 +692,83 @@ function App() {
     }
   }, [])
 
+  // Enhanced test function for local highlighting
+  const testLocalHighlight = () => {
+    if (!searchQuery.trim() || !documentText.trim()) return
+    
+    console.log('[Test] Starting local highlight test')
+    console.log('[Test] Query:', searchQuery)
+    console.log('[Test] Document length:', documentText.length)
+    
+    // Use our new findValueInNormalizedDocument function
+    const matches = findValueInNormalizedDocument(
+      searchQuery,
+      detectValueType(searchQuery),
+      normalizedDocument || createNormalizedDocument(documentText),
+      documentText
+    )
+    
+    console.log('[Test] Found matches:', matches)
+    
+    if (matches.length > 0) {
+      const testResults = matches.map((match, index) => ({
+        id: `test-result-${Date.now()}-${index}`,
+        label: `${detectValueType(searchQuery)} - Test výsledek`,
+        value: match.text,
+        matches: [{
+          start: match.start,
+          end: match.end,
+          text: match.text,
+          id: `test-match-${Date.now()}-${index}`,
+          resultId: `test-result-${Date.now()}-${index}`
+        }]
+      }))
+      
+      console.log('[Test] Creating test results:', testResults)
+      applySearchResults(testResults)
+    } else {
+      // Fallback to simple text search
+      const query = searchQuery.toLowerCase()
+      const text = documentText.toLowerCase()
+      const index = text.indexOf(query)
+      
+      if (index !== -1) {
+        // Find original case text
+        const originalText = documentText.substring(index, index + searchQuery.length)
+        
+        const testResults = [{
+          id: Date.now(),
+          label: 'Simple text match',
+          value: originalText,
+          matches: [{
+            start: index,
+            end: index + searchQuery.length,
+            text: originalText,
+            id: `fallback-match-${Date.now()}`,
+            resultId: Date.now()
+          }]
+        }]
+        
+        console.log('[Test] Using fallback text search:', testResults)
+        applySearchResults(testResults)
+      } else {
+        console.log('[Test] Query not found in document')
+        applySearchResults([])
+      }
+    }
+  }
+
   const handleSearch = async () => {
     if (!searchQuery.trim() || !documentText.trim()) return
+    
+    // For testing - use local highlight first
+    if (searchQuery.includes('test:')) {
+      testLocalHighlight()
+      return
+    }
 
     setIsSearching(true)
+    const startTime = Date.now()
 
     const newHistoryEntry = {
       query: searchQuery,
@@ -437,14 +801,17 @@ function App() {
           
           if (claudeResponse.results && Array.isArray(claudeResponse.results)) {
             applySearchResults(claudeResponse.results)
+            logSearch(searchQuery, claudeResponse.results, Date.now() - startTime)
           } else {
             // Fallback na původní formát
-            applySearchResults([{
+            const results = [{
               id: Date.now(),
               label: claudeResponse.label || null,
               value: claudeResponse.result || data.content[0].text,
               highlight: claudeResponse.highlight || []
-            }])
+            }]
+            applySearchResults(results)
+            logSearch(searchQuery, results, Date.now() - startTime)
           }
         } catch (parseError) {
           // Pokud není JSON, zkusíme rozdělit odpověď na jednotlivé položky
@@ -474,7 +841,7 @@ function App() {
         throw new Error(errorMsg)
       }
     } catch (error) {
-      console.error('Chyba při vyhledávání:', error)
+      logError(error, { operation: 'search', query: searchQuery })
       
       let errorMessage = 'Nastala neočekávaná chyba při vyhledávání.'
       
@@ -636,11 +1003,14 @@ function App() {
   }
 
   const handleResultClick = (result) => {
+    console.log('[Debug] Result clicked:', result)
+    
     if (!result) {
       return
     }
 
     if (!result.matches || result.matches.length === 0) {
+      console.log('[Debug] No matches found for result')
       setActiveResultId(null)
       setHighlightRanges([])
       return
@@ -651,6 +1021,7 @@ function App() {
       return
     }
 
+    console.log('[Debug] Setting active result:', result.id, 'matches:', result.matches)
     setActiveResultId(result.id)
     setHighlightRanges(result.matches)
 
@@ -673,9 +1044,12 @@ function App() {
     })
   }
 
+  // ZJEDNODUŠENÁ FUNKCE
   const highlightDocument = (text, ranges) => {
-    if (!ranges || ranges.length === 0) {
-      return escapeHtml(text)
+    console.log('[Simple Highlight] Input:', { text: text?.length, ranges: ranges?.length })
+    
+    if (!text || !ranges || ranges.length === 0) {
+      return escapeHtml(text || '')
     }
 
     // Always show all highlights, not just active ones
@@ -750,7 +1124,134 @@ function App() {
               </svg>
             )}
           </button>
+          <button 
+            className="test-button"
+            onClick={testLocalHighlight}
+            disabled={!searchQuery.trim() || !documentText.trim()}
+            style={{ marginLeft: '8px', padding: '0.5rem', fontSize: '0.8rem' }}
+          >
+            Test
+          </button>
+          {highlightRanges.length > 0 && (
+            <button 
+              className="clear-button"
+              onClick={() => {
+                setHighlightRanges([])
+                setActiveResultId(null)
+                setSearchResults([])
+              }}
+              style={{ marginLeft: '8px', padding: '0.5rem', fontSize: '0.8rem', background: '#ff6b6b' }}
+            >
+              Clear
+            </button>
+          )}
         </div>
+        
+        {/* Quick test examples */}
+        <div className="quick-tests" style={{ margin: '1rem 0', fontSize: '0.75rem' }}>
+          <div style={{ marginBottom: '0.5rem', color: '#888' }}>Rychlé testy:</div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button 
+              onClick={() => {
+                const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
+                setDocumentText(testText)
+                
+                // Přímo nastav highlighty
+                const testHighlights = [{
+                  start: testText.indexOf('940919/1022'),
+                  end: testText.indexOf('940919/1022') + '940919/1022'.length,
+                  id: 'test-rn',
+                  text: '940919/1022'
+                }]
+                
+                console.log('[Test] Setting direct highlights:', testHighlights)
+                setHighlightRanges(testHighlights)
+                setSearchResults([{ id: 1, label: 'RNČ', value: '940919/1022', matches: testHighlights }])
+              }}
+              style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
+            >
+              RNČ test
+            </button>
+            <button 
+              onClick={() => {
+                const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
+                setDocumentText(testText)
+                
+                const testHighlights = [{
+                  start: testText.indexOf('7 850 000'),
+                  end: testText.indexOf('7 850 000') + '7 850 000'.length,
+                  id: 'test-amount',
+                  text: '7 850 000'
+                }]
+                
+                console.log('[Test] Setting amount highlights:', testHighlights)
+                setHighlightRanges(testHighlights)
+                setSearchResults([{ id: 2, label: 'Částka', value: '7 850 000', matches: testHighlights }])
+              }}
+              style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
+            >
+              Částka test
+            </button>
+            <button 
+              onClick={() => {
+                const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
+                setDocumentText(testText)
+                
+                const testHighlights = [{
+                  start: testText.indexOf('Jan Novák'),
+                  end: testText.indexOf('Jan Novák') + 'Jan Novák'.length,
+                  id: 'test-name',
+                  text: 'Jan Novák'
+                }]
+                
+                console.log('[Test] Setting name highlights:', testHighlights)
+                setHighlightRanges(testHighlights)
+                setSearchResults([{ id: 3, label: 'Jméno', value: 'Jan Novák', matches: testHighlights }])
+              }}
+              style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
+            >
+              Jméno test
+            </button>
+            <button 
+              onClick={() => {
+                setDocumentText('Tomáš Novotný - 680412/2156, Petra Novotná - 705523/3298, Martin Procházka - 850915/4789')
+                // Simulace Claude odpovědi
+                const mockResults = [{
+                  id: 1,
+                  label: 'Výsledek 1',
+                  value: 'Tomáš Novotný - 680412/2156'
+                }, {
+                  id: 2, 
+                  label: 'Výsledek 2',
+                  value: 'Petra Novotná - 705523/3298'
+                }, {
+                  id: 3,
+                  label: 'Výsledek 3', 
+                  value: 'Martin Procházka - 850915/4789'
+                }]
+                applySearchResults(mockResults)
+              }}
+              style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#ff6b6b', color: 'white', border: 'none', borderRadius: '3px' }}
+            >
+              Simulate Claude
+            </button>
+          </div>
+        </div>
+        
+        {searchWarnings.length > 0 && (
+          <div className="warnings-section">
+            <div className="warnings-header">
+              <h3 className="warnings-title">Varování</h3>
+            </div>
+            <div className="warnings-container">
+              {searchWarnings.map((warning, index) => (
+                <div key={index} className="warning-item">
+                  {warning}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {searchResults.length > 0 && (
           <div className="results-section">
@@ -838,15 +1339,26 @@ function App() {
           <h2 className="content-title">Dokument pro vyhledávání</h2>
           <div className="content-stats">
             {highlightRanges.length > 0 && (
-              <button 
-                className="edit-button"
-                onClick={() => {
-                  setHighlightRanges([])
-                  setActiveResultId(null)
-                }}
-              >
-                Upravit text
-              </button>
+              <>
+                <span style={{ fontSize: '0.8rem', color: '#4a9eff', marginRight: '1rem' }}>
+                  {highlightRanges.length} zvýraznění
+                </span>
+                <button 
+                  className="edit-button"
+                  onClick={() => {
+                    setHighlightRanges([])
+                    setActiveResultId(null)
+                    setSearchResults([])
+                  }}
+                >
+                  Upravit text
+                </button>
+              </>
+            )}
+            {highlightRanges.length === 0 && documentText && (
+              <span style={{ fontSize: '0.8rem', color: '#888' }}>
+                {documentText.length} znaků
+              </span>
             )}
           </div>
         </div>
@@ -859,12 +1371,20 @@ function App() {
             onChange={(e) => setDocumentText(e.target.value)}
             style={{ display: highlightRanges.length > 0 ? 'none' : 'block' }}
           />
+          {highlightRanges.length === 0 && (isDocumentPreparing || showNormalizationOverlay) && (
+            <div className="document-overlay">Připravuji dokument…</div>
+          )}
           {highlightRanges.length > 0 && (
             <div 
               className="document-highlighted"
               ref={highlightedDocumentRef}
               dangerouslySetInnerHTML={{
-                __html: highlightDocument(documentText, highlightRanges)
+                __html: (() => {
+                  console.log('[Component] Rendering highlighted document with ranges:', highlightRanges)
+                  const html = highlightDocument(documentText, highlightRanges)
+                  console.log('[Component] Generated HTML preview:', html.substring(0, 300))
+                  return html
+                })()
               }}
             />
           )}

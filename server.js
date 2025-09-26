@@ -39,7 +39,7 @@ async function callClaudeAPI(query, document, retries = 3, delay = 1000) {
           max_tokens: 1024,
           messages: [{
             role: 'user',
-            content: `Analyzuj následující text a nalezni přesně to, co požaduje dotaz. Vrať odpověď v JSON formátu s jednotlivými výsledky jako klikatelnými položkami.
+          content: `Analyzuj následující text a nalezni přesně to, co požaduje dotaz. Vrať odpověď v JSON formátu s jednotlivými výsledky jako klikatelnými položkami.
 
 DOTAZ: "${query}"
 
@@ -47,17 +47,16 @@ TEXT DOKUMENTU:
 ${document}
 
 INSTRUKCE:
-- Vrať odpověď ve formátu: {"results": [{"label": "popis", "value": "hodnota", "highlight": "text k zvýraznění"}]}
-- Každý nalezený údaj jako samostatná položka v poli results
+- Vrať odpověď ve formátu: {"results": [{"label": "popis", "value": "hodnota", "highlight": "text k zvýraznění", "start": 123, "end": 456}]}
+- start a end jsou integer indexy (0-based) do původního TEXTU DOKUMENTU.
+- highlight musí být přesný úsek textu mezi indexy start a end (ověřit, že text.substring(start, end) === highlight).
 - label: krátký popis co to je (např. "Rodné číslo Jana Dvořáka")
 - value: čistá hodnota (např. "123456/7890")
-- highlight: přesný text v dokumentu k zvýraznění
 - Pokud nic nenajdeš: {"results": []}
 
 Příklady:
-Dotaz "rodné číslo Jana Dvořáka" → {"results": [{"label": "Rodné číslo", "value": "123456/7890", "highlight": "123456/7890"}]}
-Dotaz "všechny údaje o Janu Dvořákovi" → {"results": [{"label": "Jméno", "value": "Jan Dvořák", "highlight": "Jan Dvořák"}, {"label": "Rodné číslo", "value": "123456/7890", "highlight": "123456/7890"}, {"label": "Telefon", "value": "+420 777 123 456", "highlight": "+420 777 123 456"}]}
-Dotaz "Ferrari modely" → {"results": [{"label": "Ferrari F40", "value": "F40", "highlight": "F40"}, {"label": "Ferrari Testarossa", "value": "Testarossa", "highlight": "Testarossa"}]}`
+Dotaz "rodné číslo Jana Dvořáka" → {"results": [{"label": "Rodné číslo Jana Dvořáka", "value": "123456/7890", "highlight": "123456/7890", "start": 234, "end": 246}]}
+Dotaz "celková kupní cena" → {"results": [{"label": "Celková kupní cena", "value": "7 850 000 Kč", "highlight": "7 850 000", "start": 1234, "end": 1242}]}`
           }]
         })
       });
