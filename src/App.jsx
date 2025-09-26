@@ -679,6 +679,7 @@ function App() {
 
     setSearchResults(preparedResults)
     const combinedMatches = preparedResults.flatMap(result => result.matches || [])
+    console.log('[Debug] Setting highlight ranges:', combinedMatches)
     setHighlightRanges(combinedMatches)
     setActiveResultId(null)
     setSearchWarnings(warnings)
@@ -691,8 +692,80 @@ function App() {
     }
   }, [])
 
+  // Enhanced test function for local highlighting
+  const testLocalHighlight = () => {
+    if (!searchQuery.trim() || !documentText.trim()) return
+    
+    console.log('[Test] Starting local highlight test')
+    console.log('[Test] Query:', searchQuery)
+    console.log('[Test] Document length:', documentText.length)
+    
+    // Use our new findValueInNormalizedDocument function
+    const matches = findValueInNormalizedDocument(
+      searchQuery,
+      detectValueType(searchQuery),
+      normalizedDocument || createNormalizedDocument(documentText),
+      documentText
+    )
+    
+    console.log('[Test] Found matches:', matches)
+    
+    if (matches.length > 0) {
+      const testResults = matches.map((match, index) => ({
+        id: `test-result-${Date.now()}-${index}`,
+        label: `${detectValueType(searchQuery)} - Test výsledek`,
+        value: match.text,
+        matches: [{
+          start: match.start,
+          end: match.end,
+          text: match.text,
+          id: `test-match-${Date.now()}-${index}`,
+          resultId: `test-result-${Date.now()}-${index}`
+        }]
+      }))
+      
+      console.log('[Test] Creating test results:', testResults)
+      applySearchResults(testResults)
+    } else {
+      // Fallback to simple text search
+      const query = searchQuery.toLowerCase()
+      const text = documentText.toLowerCase()
+      const index = text.indexOf(query)
+      
+      if (index !== -1) {
+        // Find original case text
+        const originalText = documentText.substring(index, index + searchQuery.length)
+        
+        const testResults = [{
+          id: Date.now(),
+          label: 'Simple text match',
+          value: originalText,
+          matches: [{
+            start: index,
+            end: index + searchQuery.length,
+            text: originalText,
+            id: `fallback-match-${Date.now()}`,
+            resultId: Date.now()
+          }]
+        }]
+        
+        console.log('[Test] Using fallback text search:', testResults)
+        applySearchResults(testResults)
+      } else {
+        console.log('[Test] Query not found in document')
+        applySearchResults([])
+      }
+    }
+  }
+
   const handleSearch = async () => {
     if (!searchQuery.trim() || !documentText.trim()) return
+    
+    // For testing - use local highlight first
+    if (searchQuery.includes('test:')) {
+      testLocalHighlight()
+      return
+    }
 
     setIsSearching(true)
     const startTime = Date.now()
@@ -930,11 +1003,14 @@ function App() {
   }
 
   const handleResultClick = (result) => {
+    console.log('[Debug] Result clicked:', result)
+    
     if (!result) {
       return
     }
 
     if (!result.matches || result.matches.length === 0) {
+      console.log('[Debug] No matches found for result')
       setActiveResultId(null)
       setHighlightRanges([])
       return
@@ -945,6 +1021,7 @@ function App() {
       return
     }
 
+    console.log('[Debug] Setting active result:', result.id, 'matches:', result.matches)
     setActiveResultId(result.id)
     setHighlightRanges(result.matches)
 
@@ -1047,6 +1124,61 @@ function App() {
               </svg>
             )}
           </button>
+          <button 
+            className="test-button"
+            onClick={testLocalHighlight}
+            disabled={!searchQuery.trim() || !documentText.trim()}
+            style={{ marginLeft: '8px', padding: '0.5rem', fontSize: '0.8rem' }}
+          >
+            Test
+          </button>
+          {highlightRanges.length > 0 && (
+            <button 
+              className="clear-button"
+              onClick={() => {
+                setHighlightRanges([])
+                setActiveResultId(null)
+                setSearchResults([])
+              }}
+              style={{ marginLeft: '8px', padding: '0.5rem', fontSize: '0.8rem', background: '#ff6b6b' }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        
+        {/* Quick test examples */}
+        <div className="quick-tests" style={{ margin: '1rem 0', fontSize: '0.75rem' }}>
+          <div style={{ marginBottom: '0.5rem', color: '#888' }}>Rychlé testy:</div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button 
+              onClick={() => {
+                setDocumentText('Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč')
+                setSearchQuery('940919/1022')
+              }}
+              style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
+            >
+              RNČ test
+            </button>
+            <button 
+              onClick={() => {
+                setDocumentText('Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč')
+                setSearchQuery('7 850 000')
+              }}
+              style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
+            >
+              Částka test
+            </button>
+            <button 
+              onClick={() => {
+                setDocumentText('Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč')
+                setSearchQuery('Jan Novák')
+              }}
+              style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
+            >
+              Jméno test
+            </button>
+          </div>
         </div>
         
         {searchWarnings.length > 0 && (
@@ -1150,15 +1282,26 @@ function App() {
           <h2 className="content-title">Dokument pro vyhledávání</h2>
           <div className="content-stats">
             {highlightRanges.length > 0 && (
-              <button 
-                className="edit-button"
-                onClick={() => {
-                  setHighlightRanges([])
-                  setActiveResultId(null)
-                }}
-              >
-                Upravit text
-              </button>
+              <>
+                <span style={{ fontSize: '0.8rem', color: '#4a9eff', marginRight: '1rem' }}>
+                  {highlightRanges.length} zvýraznění
+                </span>
+                <button 
+                  className="edit-button"
+                  onClick={() => {
+                    setHighlightRanges([])
+                    setActiveResultId(null)
+                    setSearchResults([])
+                  }}
+                >
+                  Upravit text
+                </button>
+              </>
+            )}
+            {highlightRanges.length === 0 && documentText && (
+              <span style={{ fontSize: '0.8rem', color: '#888' }}>
+                {documentText.length} znaků
+              </span>
             )}
           </div>
         </div>
