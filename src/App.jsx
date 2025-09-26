@@ -293,6 +293,49 @@ const normalizeComparisonValue = (value = '', label) => {
 
 const digitsOnly = (value = '') => String(value || '').replace(/[^0-9]/g, '')
 
+const expandRangeForLabel = (document, start, end, label) => {
+  let newStart = start
+  let newEnd = end
+
+  if (/rodn[ée]|birth/i.test(label || '')) {
+    while (newStart > 0 && /[\s]/.test(document[newStart - 1])) {
+      newStart -= 1
+    }
+    while (newEnd < document.length && /[\s]/.test(document[newEnd])) {
+      newEnd += 1
+    }
+    return { start: newStart, end: newEnd }
+  }
+
+  if (/číslo účtu|účet|iban|account/i.test(label || '')) {
+    while (newStart > 0 && /[\s*]/.test(document[newStart - 1])) {
+      newStart -= 1
+    }
+    while (newEnd < document.length && /[\s*]/.test(document[newEnd])) {
+      newEnd += 1
+    }
+    return { start: newStart, end: newEnd }
+  }
+
+  if (/cena|částka|zapla[tť]|úhrada|poplatek|hodnota|výše|úrok|rpsn|rate|%/i.test(label || '')) {
+    while (newStart > 0 && /[\s\.,]/.test(document[newStart - 1])) {
+      newStart -= 1
+    }
+    while (newEnd < document.length && /[\s\.,-]/.test(document[newEnd])) {
+      newEnd += 1
+    }
+
+    const currencyMatch = document.slice(newEnd).match(/^(Kč|CZK|eur|€)/i)
+    if (currencyMatch) {
+      newEnd += currencyMatch[0].length
+    }
+
+    return { start: newStart, end: newEnd }
+  }
+
+  return { start: newStart, end: newEnd }
+}
+
 const escapeRegExp = (value = '') => {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
@@ -437,8 +480,7 @@ function App() {
   const [activeResultId, setActiveResultId] = useState(null)
   const highlightedDocumentRef = useRef(null)
   const [isDocumentPreparing, setIsDocumentPreparing] = useState(false)
-  const [normalizedDocument, setNormalizedDocument] = useState(null)
-  const [showNormalizationOverlay, setShowNormalizationOverlay] = useState(false)
+  const [normalizedDocument, setNormalizedDocument] = useState(() => buildNormalizedDocument(''))
 
   const documentSearcher = useMemo(() => createDocumentSearcher(documentText), [documentText])
 
@@ -461,39 +503,24 @@ function App() {
   }, [])
 
   // Debounced document normalization
-  const normalizeDocument = useCallback(
-    createDebouncedNormalizer((normalized) => {
-      setNormalizedDocument(normalized)
-      setShowNormalizationOverlay(false)
-      logNormalization(
-        documentText.length,
-        normalized.normalized.length,
-        300
-      )
-    }, 300),
-    []
-  )
-
   useEffect(() => {
     if (!documentText) {
       setIsDocumentPreparing(false)
-      setNormalizedDocument(null)
-      setShowNormalizationOverlay(false)
+      setNormalizedDocument(buildNormalizedDocument(''))
       return
     }
 
     setIsDocumentPreparing(true)
-    setShowNormalizationOverlay(true)
-    
-    // Normalize document after debounce
-    normalizeDocument(documentText)
-    
+    logNormalization(documentText.length, documentText.length, 0)
+
     const timer = setTimeout(() => {
+      const normalized = buildNormalizedDocument(removeDiacritics(documentText).toLowerCase())
+      setNormalizedDocument(normalized)
       setIsDocumentPreparing(false)
-    }, 250)
+    }, 10)
 
     return () => clearTimeout(timer)
-  }, [documentText, normalizeDocument])
+  }, [documentText])
 
   const handleAuthorize = (e) => {
     e.preventDefault()
