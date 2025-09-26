@@ -382,90 +382,49 @@ const escapeHtml = (str = '') => {
     .replace(/'/g, '&#39;')
 }
 
-const renderHighlightedDocument = (text = '', ranges = [], activeResultId = null) => {
-  console.log('[Render] Called with:', { textLength: text.length, rangesCount: ranges.length, ranges })
+// ZJEDNODUŠENÁ FUNKCE PRO HIGHLIGHTOVÁNÍ
+const renderHighlightedDocument = (text = '', ranges = []) => {
+  console.log('[Simple Render] Text length:', text.length, 'Ranges:', ranges.length)
   
-  if (!ranges || ranges.length === 0) {
-    console.log('[Render] No ranges, returning escaped text')
+  if (!ranges || ranges.length === 0 || !text) {
     return escapeHtml(text)
   }
 
-  const sortedRanges = ranges
-    .filter(range => {
-      const isValid = range && typeof range.start === 'number' && typeof range.end === 'number' && range.end > range.start
-      if (!isValid) {
-        console.warn('[Render] Invalid range filtered out:', range)
-      }
-      return isValid
-    })
-    .sort((a, b) => {
-      if (a.start === b.start) return a.end - b.end
-      return a.start - b.start
-    })
+  // Jednoduchý přístup - zpracuj jeden po druhém
+  let result = escapeHtml(text)
+  
+  // Seřaď ranges od konce aby se neposunuly indexy
+  const sortedRanges = [...ranges]
+    .filter(r => r && typeof r.start === 'number' && typeof r.end === 'number' && r.start < r.end)
+    .sort((a, b) => b.start - a.start)
     
-  console.log('[Render] Sorted ranges:', sortedRanges)
-
-  const merged = []
-
-  sortedRanges.forEach(range => {
+  console.log('[Simple Render] Valid ranges:', sortedRanges)
+  
+  // Aplikuj každý range
+  sortedRanges.forEach((range, i) => {
     const start = Math.max(0, Math.min(range.start, text.length))
     const end = Math.max(start, Math.min(range.end, text.length))
-
-    if (merged.length > 0) {
-      const last = merged[merged.length - 1]
-      if (start <= last.end) {
-        if (end <= last.end) {
-          return
-        }
-        last.end = end
-        return
-      }
-    }
-
-    merged.push({
-      start,
-      end,
-      id: range.id,
-      resultId: range.resultId
-    })
-  })
-
-  let currentIndex = 0
-  let html = ''
-
-  console.log('[Render] Starting HTML generation with merged ranges:', merged)
-  console.log('[Render] Text length:', text.length)
-
-  merged.forEach((range, index) => {
-    console.log(`[Render] Processing range ${index}:`, {
-      start: range.start,
-      end: range.end,
-      text: text.slice(range.start, range.end),
-      id: range.id
-    })
-    if (range.start > currentIndex) {
-      html += escapeHtml(text.slice(currentIndex, range.start))
-    }
-
-    const segment = escapeHtml(text.slice(range.start, range.end))
-    const isActive = activeResultId && range.resultId === activeResultId
-    const className = isActive ? 'highlight active' : 'highlight'
-    const markTag = `<mark class="${className}" data-highlight-id="${range.id}"${range.resultId ? ` data-result-id="${range.resultId}"` : ''}>${segment}</mark>`
     
-    console.log(`[Render] Generated mark tag:`, markTag)
-    html += markTag
-
-    currentIndex = range.end
+    if (start < end) {
+      const beforeText = result.substring(0, start)
+      const highlightText = escapeHtml(text.substring(start, end))
+      const afterText = result.substring(end)
+      
+      const markTag = `<mark class="highlight" style="background-color: yellow; padding: 2px;">${highlightText}</mark>`
+      result = beforeText + markTag + afterText
+      
+      console.log(`[Simple Render] Applied highlight ${i}:`, {
+        start, end, 
+        text: text.substring(start, end),
+        hasMarkTag: result.includes('<mark')
+      })
+    }
   })
-
-  if (currentIndex < text.length) {
-    html += escapeHtml(text.slice(currentIndex))
-  }
-
-  console.log('[Render] Final HTML length:', html.length)
-  console.log('[Render] Final HTML preview (first 400 chars):', html.substring(0, 400))
-  console.log('[Render] Final HTML has mark tags:', html.includes('<mark'))
-  return html
+  
+  console.log('[Simple Render] Final result has highlights:', result.includes('<mark'))
+  console.log('[Simple Render] Preview:', result.substring(0, 300))
+  
+  return result
 }
 
 function App() {
@@ -1105,30 +1064,16 @@ function App() {
     })
   }
 
+  // ZJEDNODUŠENÁ FUNKCE
   const highlightDocument = (text, ranges) => {
-    console.log('[Highlight] Called with:', { textLength: text?.length, rangesCount: ranges?.length, ranges })
+    console.log('[Simple Highlight] Input:', { text: text?.length, ranges: ranges?.length })
     
-    if (!ranges || ranges.length === 0) {
-      console.log('[Highlight] No ranges, returning plain text')
-      return escapeHtml(text)
+    if (!text || !ranges || ranges.length === 0) {
+      return escapeHtml(text || '')
     }
-
-    const rangesWithSelection = Array.isArray(ranges)
-      ? ranges.map(range => ({
-          start: range.start,
-          end: range.end,
-          id: range.id,
-          resultId: range.resultId
-        }))
-      : []
-      
-    console.log('[Highlight] Processed ranges:', rangesWithSelection)
-
-    const activeMatches = activeResultId
-      ? rangesWithSelection.filter(range => range.resultId === activeResultId)
-      : rangesWithSelection
-
-    return renderHighlightedDocument(text, activeMatches, activeResultId)
+    
+    // Přímo volañ zjednodušené renderování
+    return renderHighlightedDocument(text, ranges)
   }
 
   if (!isAuthorized) {
@@ -1219,8 +1164,20 @@ function App() {
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button 
               onClick={() => {
-                setDocumentText('Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč')
-                setSearchQuery('940919/1022')
+                const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
+                setDocumentText(testText)
+                
+                // Přímo nastav highlighty
+                const testHighlights = [{
+                  start: testText.indexOf('940919/1022'),
+                  end: testText.indexOf('940919/1022') + '940919/1022'.length,
+                  id: 'test-rn',
+                  text: '940919/1022'
+                }]
+                
+                console.log('[Test] Setting direct highlights:', testHighlights)
+                setHighlightRanges(testHighlights)
+                setSearchResults([{ id: 1, label: 'RNČ', value: '940919/1022', matches: testHighlights }])
               }}
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
             >
@@ -1228,8 +1185,19 @@ function App() {
             </button>
             <button 
               onClick={() => {
-                setDocumentText('Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč')
-                setSearchQuery('7 850 000')
+                const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
+                setDocumentText(testText)
+                
+                const testHighlights = [{
+                  start: testText.indexOf('7 850 000'),
+                  end: testText.indexOf('7 850 000') + '7 850 000'.length,
+                  id: 'test-amount',
+                  text: '7 850 000'
+                }]
+                
+                console.log('[Test] Setting amount highlights:', testHighlights)
+                setHighlightRanges(testHighlights)
+                setSearchResults([{ id: 2, label: 'Částka', value: '7 850 000', matches: testHighlights }])
               }}
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
             >
@@ -1237,8 +1205,19 @@ function App() {
             </button>
             <button 
               onClick={() => {
-                setDocumentText('Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč')
-                setSearchQuery('Jan Novák')
+                const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
+                setDocumentText(testText)
+                
+                const testHighlights = [{
+                  start: testText.indexOf('Jan Novák'),
+                  end: testText.indexOf('Jan Novák') + 'Jan Novák'.length,
+                  id: 'test-name',
+                  text: 'Jan Novák'
+                }]
+                
+                console.log('[Test] Setting name highlights:', testHighlights)
+                setHighlightRanges(testHighlights)
+                setSearchResults([{ id: 3, label: 'Jméno', value: 'Jan Novák', matches: testHighlights }])
               }}
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
             >
