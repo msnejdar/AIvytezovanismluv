@@ -531,6 +531,14 @@ function App() {
   const [normalizedDocument, setNormalizedDocument] = useState(() => buildNormalizedDocument(''))
   const [searchMode, setSearchMode] = useState('contract') // 'simple', 'fuzzy', 'semantic', 'intelligent', 'contract'
   const [performanceStats, setPerformanceStats] = useState(null)
+  const [theme, setTheme] = useState('dark')
+  const [showFilters, setShowFilters] = useState(false)
+  const [searchFilters, setSearchFilters] = useState({
+    documentType: 'all',
+    confidence: 'all',
+    valueType: 'all',
+    dateRange: 'all'
+  })
 
   const documentSearcher = useMemo(() => createDocumentSearcher(documentText), [documentText])
 
@@ -541,10 +549,13 @@ function App() {
   const [searchWarnings, setSearchWarnings] = useState([])
 
   useEffect(() => {
-    // Check localStorage for saved authentication
+    // Check localStorage for saved authentication and theme
     try {
       const savedAuth = localStorage.getItem('aiSearchAuth') === 'true'
+      const savedTheme = localStorage.getItem('aiSearchTheme') || 'dark'
       setIsAuthorized(savedAuth)
+      setTheme(savedTheme)
+      document.documentElement.setAttribute('data-theme', savedTheme)
     } catch (error) {
       console.error('Error checking localStorage:', error)
       setIsAuthorized(false)
@@ -556,6 +567,141 @@ function App() {
       enableCaching: true
     })
   }, [])
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark'
+    setTheme(newTheme)
+    document.documentElement.setAttribute('data-theme', newTheme)
+    try {
+      localStorage.setItem('aiSearchTheme', newTheme)
+    } catch (error) {
+      console.error('Error saving theme:', error)
+    }
+  }
+
+  const handleFilterChange = (filterType, value) => {
+    setSearchFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }))
+  }
+
+  const getConfidenceLevel = (score) => {
+    if (score >= 0.8) return 'high'
+    if (score >= 0.5) return 'medium'
+    return 'low'
+  }
+
+  const renderConfidenceMeter = (confidence, label = 'Confidence') => {
+    const level = getConfidenceLevel(confidence)
+    return (
+      <div className="confidence-meter">
+        <span className="confidence-label">{label}</span>
+        <div className="confidence-bar">
+          <div className={`confidence-fill ${level}`}></div>
+        </div>
+        <span className="confidence-label">{Math.round(confidence * 100)}%</span>
+      </div>
+    )
+  }
+
+  const renderSearchFilters = () => {
+    if (!showFilters) return null
+
+    return (
+      <div className="search-filters-container">
+        <div className="search-filters-header">
+          <h3 className="search-filters-title">Advanced Filters</h3>
+          <button 
+            className="filters-toggle"
+            onClick={() => setShowFilters(false)}
+          >
+            Hide Filters
+          </button>
+        </div>
+        
+        <div className="search-filters-grid">
+          <div className="filter-group">
+            <label className="filter-label">Document Type</label>
+            <select 
+              className="filter-select"
+              value={searchFilters.documentType}
+              onChange={(e) => handleFilterChange('documentType', e.target.value)}
+            >
+              <option value="all">All Types</option>
+              <option value="contract">Contracts</option>
+              <option value="legal">Legal Documents</option>
+              <option value="invoice">Invoices</option>
+              <option value="agreement">Agreements</option>
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label className="filter-label">Confidence Level</label>
+            <select 
+              className="filter-select"
+              value={searchFilters.confidence}
+              onChange={(e) => handleFilterChange('confidence', e.target.value)}
+            >
+              <option value="all">All Levels</option>
+              <option value="high">High (80%+)</option>
+              <option value="medium">Medium (50-80%)</option>
+              <option value="low">Low (Below 50%)</option>
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label className="filter-label">Value Type</label>
+            <select 
+              className="filter-select"
+              value={searchFilters.valueType}
+              onChange={(e) => handleFilterChange('valueType', e.target.value)}
+            >
+              <option value="all">All Types</option>
+              <option value="birth-number">Birth Numbers</option>
+              <option value="amount">Amounts</option>
+              <option value="name">Names</option>
+              <option value="phone">Phone Numbers</option>
+              <option value="date">Dates</option>
+              <option value="address">Addresses</option>
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label className="filter-label">Date Range</label>
+            <select 
+              className="filter-select"
+              value={searchFilters.dateRange}
+              onChange={(e) => handleFilterChange('dateRange', e.target.value)}
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+            </select>
+          </div>
+        </div>
+        
+        <div className="filter-chips">
+          {Object.entries(searchFilters).map(([key, value]) => {
+            if (value === 'all') return null
+            return (
+              <div key={key} className="filter-chip">
+                {key}: {value}
+                <button 
+                  className="filter-chip-remove"
+                  onClick={() => handleFilterChange(key, 'all')}
+                >
+                  ×
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
 
   // Debounced document normalization
   useEffect(() => {
@@ -1381,6 +1527,9 @@ function App() {
           </form>
           <span className="auth-powered">Powered by Claude</span>
         </div>
+        <button className="theme-toggle" onClick={toggleTheme} title="Toggle Theme">
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
       </div>
     )
   }
@@ -1462,7 +1611,17 @@ function App() {
               Clear
             </button>
           )}
+          <button 
+            className="filters-toggle"
+            onClick={() => setShowFilters(!showFilters)}
+            style={{ marginLeft: '8px', padding: '0.5rem', fontSize: '0.8rem' }}
+          >
+            {showFilters ? 'Hide' : 'Show'} Filters
+          </button>
         </div>
+        
+        {/* Advanced Search Filters */}
+        {renderSearchFilters()}
         
         {/* Performance stats */}
         {performanceStats && (
@@ -1562,11 +1721,28 @@ function App() {
                   onClick={() => (result.matches && result.matches.length > 0) && handleResultClick(result)}
                 >
                   {result.label && (
-                    <div className="result-label">{result.label}</div>
+                    <div className="result-label">
+                      {result.label}
+                      {result.type && (
+                        <span className={`status-indicator ${result.type}`} style={{marginLeft: '0.5rem', padding: '0.25rem 0.5rem'}}>
+                          {result.type}
+                        </span>
+                      )}
+                    </div>
                   )}
                   <div className={result.label ? 'result-value' : 'result-content'}>
                     {result.value ?? result.content}
                   </div>
+                  {result.confidence && (
+                    <div style={{marginTop: '0.75rem'}}>
+                      {renderConfidenceMeter(result.confidence, 'Přesnost')}
+                    </div>
+                  )}
+                  {result.context && (
+                    <div style={{marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--legal-text-muted)', fontStyle: 'italic'}}>
+                      Kontext: {result.context}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1674,6 +1850,26 @@ function App() {
           )}
         </div>
       </div>
+
+      {/* Theme Toggle Button */}
+      <button className="theme-toggle" onClick={toggleTheme} title="Toggle Theme">
+        {theme === 'dark' ? '☀️' : '🌙'}
+      </button>
+
+      {/* Performance Analytics */}
+      {performanceStats && (
+        <div className="data-viz-container" style={{position: 'fixed', bottom: '2rem', right: '5rem', width: '300px', zIndex: '999'}}>
+          <div className="data-viz-header">
+            <h3 className="data-viz-title">Performance</h3>
+          </div>
+          <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
+            {renderConfidenceMeter(Math.min(performanceStats.duration / 1000, 1), 'Speed')}
+            <div style={{fontSize: '0.75rem', color: 'var(--legal-text-muted)'}}>
+              Search completed in {performanceStats.duration.toFixed(0)}ms
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,0 +1,267 @@
+.table-view {
+  width: 100%;
+  margin: 1rem 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.table-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.table-filters {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.filter-input {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  min-width: 200px;
+}
+
+.result-count {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.export-button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.export-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-button.csv {
+  background: #28a745;
+  color: white;
+}
+
+.export-button.csv:hover:not(:disabled) {
+  background: #218838;
+}
+
+.export-button.xlsx {
+  background: #007bff;
+  color: white;
+}
+
+.export-button.xlsx:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.export-button.pdf {
+  background: #dc3545;
+  color: white;
+}
+
+.export-button.pdf:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.table-container {
+  max-height: 600px;
+  overflow: auto;
+  border-radius: 0 0 8px 8px;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.results-table th {
+  background: #f1f3f4;
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.results-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.results-table th.sortable:hover {
+  background: #e9ecef;
+}
+
+.results-table th.sorted {
+  background: #d4edda;
+}
+
+.sort-indicator {
+  margin-left: 0.5rem;
+  opacity: 0.6;
+  font-size: 0.8rem;
+}
+
+.results-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+  vertical-align: top;
+}
+
+.table-row:hover {
+  background: #f8f9fa;
+}
+
+.table-row.selected {
+  background: #e3f2fd;
+}
+
+.select-column {
+  width: 40px;
+  text-align: center;
+}
+
+.cell-number {
+  text-align: right;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.cell-datetime {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.value-cell.clickable {
+  cursor: pointer;
+  color: #007bff;
+  text-decoration: underline;
+  max-width: 200px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.value-cell.clickable:hover {
+  color: #0056b3;
+  background: #f8f9fa;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.actions-column {
+  width: 80px;
+  text-align: center;
+}
+
+.action-button {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  margin: 0 0.1rem;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 1rem;
+  transition: background-color 0.2s ease;
+}
+
+.action-button:hover {
+  background: #f0f0f0;
+}
+
+.action-button.highlight:hover {
+  background: #fff3cd;
+}
+
+.action-button.copy:hover {
+  background: #d4edda;
+}
+
+.empty-table {
+  padding: 3rem;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .table-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .table-filters {
+    justify-content: space-between;
+  }
+
+  .filter-input {
+    min-width: auto;
+    flex: 1;
+  }
+
+  .export-buttons {
+    justify-content: center;
+  }
+
+  .results-table {
+    font-size: 0.8rem;
+  }
+
+  .results-table th,
+  .results-table td {
+    padding: 0.5rem;
+  }
+
+  .value-cell.clickable {
+    max-width: 150px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .table-controls {
+    display: none;
+  }
+  
+  .table-container {
+    max-height: none;
+    overflow: visible;
+  }
+  
+  .results-table {
+    font-size: 0.75rem;
+  }
+  
+  .action-button {
+    display: none;
+  }
+}
