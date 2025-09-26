@@ -451,6 +451,8 @@ const renderHighlightedDocument = (text = '', ranges = [], activeResultId = null
     html += escapeHtml(text.slice(currentIndex))
   }
 
+  console.log('[Render] Final HTML length:', html.length)
+  console.log('[Render] Final HTML preview:', html.substring(0, 200) + '...')
   return html
 }
 
@@ -720,7 +722,14 @@ function App() {
     })
     
     console.log('[Debug] Valid matches:', validMatches)
+    console.log('[Debug] About to set highlightRanges...')
     setHighlightRanges(validMatches)
+    
+    // Check if state was actually updated
+    setTimeout(() => {
+      console.log('[Debug] HighlightRanges state after update:', highlightRanges.length)
+    }, 100)
+    
     setActiveResultId(null)
     setSearchWarnings(warnings)
   }
@@ -1390,7 +1399,12 @@ function App() {
               className="document-highlighted"
               ref={highlightedDocumentRef}
               dangerouslySetInnerHTML={{
-                __html: highlightDocument(documentText, highlightRanges)
+                __html: (() => {
+                  console.log('[Component] Rendering highlighted document with ranges:', highlightRanges)
+                  const html = highlightDocument(documentText, highlightRanges)
+                  console.log('[Component] Generated HTML preview:', html.substring(0, 300))
+                  return html
+                })()
               }}
             />
           )}
