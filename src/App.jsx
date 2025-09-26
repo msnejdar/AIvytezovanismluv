@@ -383,16 +383,27 @@ const escapeHtml = (str = '') => {
 }
 
 const renderHighlightedDocument = (text = '', ranges = [], activeResultId = null) => {
+  console.log('[Render] Called with:', { textLength: text.length, rangesCount: ranges.length, ranges })
+  
   if (!ranges || ranges.length === 0) {
+    console.log('[Render] No ranges, returning escaped text')
     return escapeHtml(text)
   }
 
   const sortedRanges = ranges
-    .filter(range => range && typeof range.start === 'number' && typeof range.end === 'number' && range.end > range.start)
+    .filter(range => {
+      const isValid = range && typeof range.start === 'number' && typeof range.end === 'number' && range.end > range.start
+      if (!isValid) {
+        console.warn('[Render] Invalid range filtered out:', range)
+      }
+      return isValid
+    })
     .sort((a, b) => {
       if (a.start === b.start) return a.end - b.end
       return a.start - b.start
     })
+    
+  console.log('[Render] Sorted ranges:', sortedRanges)
 
   const merged = []
 
@@ -695,8 +706,21 @@ function App() {
 
     setSearchResults(preparedResults)
     const combinedMatches = preparedResults.flatMap(result => result.matches || [])
-    console.log('[Debug] Setting highlight ranges:', combinedMatches)
-    setHighlightRanges(combinedMatches)
+    console.log('[Debug] Prepared results:', preparedResults)
+    console.log('[Debug] Combined matches:', combinedMatches)
+    console.log('[Debug] Setting highlight ranges count:', combinedMatches.length)
+    
+    // Ensure all matches have valid indices
+    const validMatches = combinedMatches.filter(match => {
+      const isValid = match && typeof match.start === 'number' && typeof match.end === 'number' && match.end > match.start
+      if (!isValid) {
+        console.warn('[Debug] Invalid match found:', match)
+      }
+      return isValid
+    })
+    
+    console.log('[Debug] Valid matches:', validMatches)
+    setHighlightRanges(validMatches)
     setActiveResultId(null)
     setSearchWarnings(warnings)
   }
@@ -1061,7 +1085,10 @@ function App() {
   }
 
   const highlightDocument = (text, ranges) => {
+    console.log('[Highlight] Called with:', { textLength: text?.length, rangesCount: ranges?.length, ranges })
+    
     if (!ranges || ranges.length === 0) {
+      console.log('[Highlight] No ranges, returning plain text')
       return escapeHtml(text)
     }
 
@@ -1073,6 +1100,8 @@ function App() {
           resultId: range.resultId
         }))
       : []
+      
+    console.log('[Highlight] Processed ranges:', rangesWithSelection)
 
     const activeMatches = activeResultId
       ? rangesWithSelection.filter(range => range.resultId === activeResultId)
