@@ -389,6 +389,7 @@ function App() {
 
     setSearchResults(preparedResults)
     const combinedMatches = preparedResults.flatMap(result => result.matches || [])
+    console.log('Setting highlight ranges:', combinedMatches.length, combinedMatches)
     setHighlightRanges(combinedMatches)
     setActiveResultId(null)
   }
@@ -677,6 +678,7 @@ function App() {
       return escapeHtml(text)
     }
 
+    // Always show all highlights, not just active ones
     const rangesWithSelection = Array.isArray(ranges)
       ? ranges.map(range => ({
           start: range.start,
@@ -686,11 +688,7 @@ function App() {
         }))
       : []
 
-    const activeMatches = activeResultId
-      ? rangesWithSelection.filter(range => range.resultId === activeResultId)
-      : rangesWithSelection
-
-    return renderHighlightedDocument(text, activeMatches, activeResultId)
+    return renderHighlightedDocument(text, rangesWithSelection, activeResultId)
   }
 
   if (!isAuthorized) {
