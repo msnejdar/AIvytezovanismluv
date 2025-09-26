@@ -433,7 +433,16 @@ const renderHighlightedDocument = (text = '', ranges = [], activeResultId = null
   let currentIndex = 0
   let html = ''
 
-  merged.forEach(range => {
+  console.log('[Render] Starting HTML generation with merged ranges:', merged)
+  console.log('[Render] Text length:', text.length)
+
+  merged.forEach((range, index) => {
+    console.log(`[Render] Processing range ${index}:`, {
+      start: range.start,
+      end: range.end,
+      text: text.slice(range.start, range.end),
+      id: range.id
+    })
     if (range.start > currentIndex) {
       html += escapeHtml(text.slice(currentIndex, range.start))
     }
@@ -441,8 +450,10 @@ const renderHighlightedDocument = (text = '', ranges = [], activeResultId = null
     const segment = escapeHtml(text.slice(range.start, range.end))
     const isActive = activeResultId && range.resultId === activeResultId
     const className = isActive ? 'highlight active' : 'highlight'
-
-    html += `<mark class="${className}" data-highlight-id="${range.id}"${range.resultId ? ` data-result-id="${range.resultId}"` : ''}>${segment}</mark>`
+    const markTag = `<mark class="${className}" data-highlight-id="${range.id}"${range.resultId ? ` data-result-id="${range.resultId}"` : ''}>${segment}</mark>`
+    
+    console.log(`[Render] Generated mark tag:`, markTag)
+    html += markTag
 
     currentIndex = range.end
   })
@@ -452,7 +463,8 @@ const renderHighlightedDocument = (text = '', ranges = [], activeResultId = null
   }
 
   console.log('[Render] Final HTML length:', html.length)
-  console.log('[Render] Final HTML preview:', html.substring(0, 200) + '...')
+  console.log('[Render] Final HTML preview (first 400 chars):', html.substring(0, 400))
+  console.log('[Render] Final HTML has mark tags:', html.includes('<mark'))
   return html
 }
 
