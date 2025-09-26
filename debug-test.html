@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Debug Test</title>
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+        .test-container { background: #f0f0f0; padding: 20px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>React App Debug Test</h1>
+    
+    <div class="test-container">
+        <h3>Test 1: Basic JavaScript</h3>
+        <div id="js-test">❌ JavaScript not running</div>
+    </div>
+    
+    <div class="test-container">
+        <h3>Test 2: localStorage Access</h3>
+        <div id="localStorage-test">❌ localStorage not tested</div>
+    </div>
+    
+    <div class="test-container">
+        <h3>Test 3: React Mount Target</h3>
+        <div id="root-test">❌ Root div not found</div>
+    </div>
+    
+    <div class="test-container">
+        <h3>Test 4: Simulated Auth Logic</h3>
+        <div id="auth-test">❌ Auth logic not tested</div>
+    </div>
+    
+    <script>
+        // Test 1: Basic JavaScript
+        document.getElementById('js-test').innerHTML = '✅ JavaScript is running';
+        document.getElementById('js-test').parentElement.className = 'test-container success';
+        
+        // Test 2: localStorage
+        try {
+            localStorage.setItem('test', 'value');
+            const testValue = localStorage.getItem('test');
+            localStorage.removeItem('test');
+            document.getElementById('localStorage-test').innerHTML = '✅ localStorage working: ' + testValue;
+            document.getElementById('localStorage-test').parentElement.className = 'test-container success';
+        } catch (error) {
+            document.getElementById('localStorage-test').innerHTML = '❌ localStorage error: ' + error.message;
+            document.getElementById('localStorage-test').parentElement.className = 'test-container error';
+        }
+        
+        // Test 3: Root div
+        const rootDiv = document.getElementById('root');
+        if (rootDiv) {
+            document.getElementById('root-test').innerHTML = '✅ Root div found (React can mount)';
+            document.getElementById('root-test').parentElement.className = 'test-container success';
+        } else {
+            document.getElementById('root-test').innerHTML = '❌ Root div NOT found';
+            document.getElementById('root-test').parentElement.className = 'test-container error';
+        }
+        
+        // Test 4: Auth logic simulation
+        try {
+            const isAuthorized = (() => {
+                if (typeof window === 'undefined') {
+                    return false;
+                }
+                return window.localStorage.getItem('aiSearchAuth') === 'true';
+            })();
+            
+            const shouldShowLogin = !isAuthorized;
+            document.getElementById('auth-test').innerHTML = `✅ Auth logic: isAuthorized=${isAuthorized}, shouldShowLogin=${shouldShowLogin}`;
+            document.getElementById('auth-test').parentElement.className = 'test-container success';
+        } catch (error) {
+            document.getElementById('auth-test').innerHTML = '❌ Auth logic error: ' + error.message;
+            document.getElementById('auth-test').parentElement.className = 'test-container error';
+        }
+        
+        // Test if we can access the app URL
+        fetch('http://localhost:5174/')
+            .then(response => response.text())
+            .then(html => {
+                console.log('✅ App server is reachable');
+                console.log('Response contains root div:', html.includes('<div id="root">'));
+                console.log('Response contains main.jsx:', html.includes('main.jsx'));
+            })
+            .catch(error => {
+                console.log('❌ App server error:', error);
+            });
+    </script>
+    
+    <!-- Add a root div for testing -->
+    <div id="root" style="border: 2px dashed #ccc; padding: 20px; margin: 20px 0; min-height: 100px;">
+        <p style="color: #666; text-align: center;">React should mount here if working</p>
+    </div>
+</body>
+</html>

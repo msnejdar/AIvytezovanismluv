@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Test - Emergency Diagnostic</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-box {
+            background: white;
+            border: 2px solid #ccc;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .success { border-color: green; background: #e8f5e8; }
+        .error { border-color: red; background: #ffeaea; }
+        .loading { border-color: orange; background: #fff8e1; }
+    </style>
+</head>
+<body>
+    <h1>🚨 EMERGENCY JAVASCRIPT DIAGNOSTIC</h1>
+    
+    <div class="test-box loading" id="basic-js">
+        <h3>Test 1: Basic JavaScript</h3>
+        <p id="js-result">❌ JavaScript NOT running</p>
+    </div>
+    
+    <div class="test-box loading" id="dom-test">
+        <h3>Test 2: DOM Manipulation</h3>
+        <p id="dom-result">❌ DOM manipulation failed</p>
+    </div>
+    
+    <div class="test-box loading" id="event-test">
+        <h3>Test 3: Event Handling</h3>
+        <button id="test-button">Click me to test events</button>
+        <p id="event-result">❌ Event handling not tested</p>
+    </div>
+    
+    <div class="test-box loading" id="console-test">
+        <h3>Test 4: Console Logging</h3>
+        <p id="console-result">❌ Check browser console (F12)</p>
+    </div>
+    
+    <div class="test-box loading" id="react-server-test">
+        <h3>Test 5: React Dev Server</h3>
+        <p id="server-result">❌ Testing connection...</p>
+    </div>
+
+    <script>
+        console.log('🔍 EMERGENCY: JavaScript is executing!');
+        console.log('🔍 EMERGENCY: Current URL:', window.location.href);
+        console.log('🔍 EMERGENCY: User Agent:', navigator.userAgent);
+        
+        // Test 1: Basic JavaScript
+        document.getElementById('js-result').textContent = '✅ JavaScript IS running!';
+        document.getElementById('basic-js').className = 'test-box success';
+        
+        // Test 2: DOM
+        const domTest = document.getElementById('dom-result');
+        domTest.innerHTML = '✅ DOM manipulation working at ' + new Date().toLocaleTimeString();
+        document.getElementById('dom-test').className = 'test-box success';
+        
+        // Test 3: Events
+        document.getElementById('test-button').addEventListener('click', function() {
+            document.getElementById('event-result').textContent = '✅ Event handling working!';
+            document.getElementById('event-test').className = 'test-box success';
+        });
+        
+        // Test 4: Console
+        console.log('✅ Console logging is working');
+        document.getElementById('console-result').textContent = '✅ Console logging working (check F12)';
+        document.getElementById('console-test').className = 'test-box success';
+        
+        // Test 5: React server connection
+        fetch('http://localhost:5174/')
+            .then(response => {
+                console.log('✅ React server reachable, status:', response.status);
+                document.getElementById('server-result').textContent = `✅ React server reachable (${response.status})`;
+                document.getElementById('react-server-test').className = 'test-box success';
+                return response.text();
+            })
+            .then(html => {
+                console.log('✅ React server HTML length:', html.length);
+                const hasRoot = html.includes('<div id="root">');
+                const hasScript = html.includes('main.jsx');
+                console.log('✅ Has root div:', hasRoot);
+                console.log('✅ Has script tag:', hasScript);
+                
+                if (!hasRoot) {
+                    throw new Error('Root div not found in React server response!');
+                }
+                if (!hasScript) {
+                    throw new Error('Script tag not found in React server response!');
+                }
+            })
+            .catch(error => {
+                console.error('❌ React server error:', error);
+                document.getElementById('server-result').textContent = '❌ ' + error.message;
+                document.getElementById('react-server-test').className = 'test-box error';
+            });
+        
+        // Check if we're on the React dev server
+        if (window.location.port === '5174') {
+            document.body.style.background = 'linear-gradient(45deg, #ff4444, #ffaa00)';
+            document.body.style.color = 'white';
+            
+            const warning = document.createElement('div');
+            warning.style.cssText = `
+                position: fixed; 
+                top: 0; 
+                left: 0; 
+                right: 0; 
+                background: red; 
+                color: white; 
+                padding: 10px; 
+                text-align: center; 
+                font-weight: bold; 
+                z-index: 9999;
+            `;
+            warning.textContent = '🚨 YOU ARE ON THE REACT DEV SERVER - JAVASCRIPT SHOULD BE WORKING HERE!';
+            document.body.appendChild(warning);
+        }
+    </script>
+</body>
+</html>

@@ -527,6 +527,7 @@ const renderHighlightedDocument = (text = '', ranges = []) => {
 }
 
 function App() {
+  console.log('[App] Component function called')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchHistory, setSearchHistory] = useState([])
   const [documentText, setDocumentText] = useState('')
@@ -542,21 +543,24 @@ function App() {
 
   const documentSearcher = useMemo(() => createDocumentSearcher(documentText), [documentText])
 
-  const [isAuthorized, setIsAuthorized] = useState(() => {
-    if (typeof window === 'undefined') {
-      return false
-    }
-    return window.localStorage.getItem('aiSearchAuth') === 'true'
-  })
+  const [isAuthorized, setIsAuthorized] = useState(false)
   const [passwordInput, setPasswordInput] = useState('')
   const [authError, setAuthError] = useState('')
+  const [isAuthenticating, setIsAuthenticating] = useState(false)
   const [searchWarnings, setSearchWarnings] = useState([])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    const savedAuth = window.localStorage.getItem('aiSearchAuth') === 'true'
-    if (savedAuth) {
-      setIsAuthorized(true)
+    console.log('[Auth] useEffect running')
+    // Check localStorage for saved authentication
+    try {
+      const authValue = localStorage.getItem('aiSearchAuth')
+      console.log('[Auth] Raw localStorage value:', authValue)
+      const savedAuth = authValue === 'true'
+      console.log('[Auth] Checking saved auth:', savedAuth)
+      setIsAuthorized(savedAuth)
+    } catch (error) {
+      console.error('[Auth] Error checking localStorage:', error)
+      setIsAuthorized(false)
     }
     
     // Initialize performance optimizations
@@ -586,26 +590,64 @@ function App() {
     return () => clearTimeout(timer)
   }, [documentText])
 
-  const handleAuthorize = (e) => {
+  const handleAuthorize = async (e) => {
     e.preventDefault()
+    setIsAuthenticating(true)
+    setAuthError('')
+    
+    console.log('[Auth] Attempting authorization with password:', passwordInput)
+    
+    // Add a small delay to show loading state
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
     if (passwordInput === 'sporka2025') {
+      console.log('[Auth] Password correct, setting authorized to true')
       setIsAuthorized(true)
-      setAuthError('')
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem('aiSearchAuth', 'true')
+      try {
+        localStorage.setItem('aiSearchAuth', 'true')
+        console.log('[Auth] Saved auth to localStorage')
+      } catch (error) {
+        console.error('[Auth] Error saving to localStorage:', error)
       }
     } else {
+      console.log('[Auth] Password incorrect')
       setAuthError('Nesprávné heslo. Zkuste to znovu.')
     }
+    
+    setIsAuthenticating(false)
   }
 
   const handleLogout = () => {
+    console.log('[Auth] Logging out')
     setIsAuthorized(false)
     setPasswordInput('')
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem('aiSearchAuth')
+    try {
+      localStorage.removeItem('aiSearchAuth')
+      console.log('[Auth] Removed auth from localStorage')
+    } catch (error) {
+      console.error('[Auth] Error removing from localStorage:', error)
     }
   }
+  
+  // Debug function to force logout (for testing)
+  const forceLogout = () => {
+    console.log('[Auth] Force logout triggered')
+    localStorage.clear()
+    setIsAuthorized(false)
+    window.location.reload()
+  }
+  
+  // Expose debug functions globally for browser console
+  useEffect(() => {
+    window.debugAuth = {
+      forceLogout,
+      showAuthState: () => console.log('isAuthorized:', isAuthorized),
+      clearStorage: () => {
+        localStorage.clear()
+        console.log('localStorage cleared')
+      }
+    }
+  }, [isAuthorized])
 
   const applySearchResults = (rawResults = []) => {
     if (!Array.isArray(rawResults) || rawResults.length === 0) {
@@ -1319,7 +1361,10 @@ function App() {
     return result
   }
 
+  console.log('[Render] isAuthorized:', isAuthorized)
+  
   if (!isAuthorized) {
+    console.log('[Render] Showing login page')
     return (
       <div className="auth-container">
         <div className="auth-panel">
@@ -1335,9 +1380,20 @@ function App() {
                 setPasswordInput(e.target.value)
                 setAuthError('')
               }}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleAuthorize(e)
+                }
+              }}
+              autoFocus
+              required
+              autoComplete="current-password"
             />
             {authError && <div className="auth-error">{authError}</div>}
-            <button type="submit" className="auth-button">Vstoupit</button>
+            <button type="submit" className="auth-button" disabled={isAuthenticating}>
+              {isAuthenticating ? 'Přihlašování...' : 'Vstoupit'}
+            </button>
           </form>
           <span className="auth-powered">Powered by Claude</span>
         </div>
@@ -1345,6 +1401,7 @@ function App() {
     )
   }
 
+  console.log('[Render] Showing main app interface')
   return (
     <div className="app-container">
       <div className="search-panel">
