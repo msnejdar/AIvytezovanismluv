@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd AI-SEARCH && npm install && npm run build",
+  "buildCommand": "cd AI-SEARCH && npm ci && npm run build",
   "outputDirectory": "AI-SEARCH/dist",
   "installCommand": "cd AI-SEARCH && npm install",
   "framework": "vite",
