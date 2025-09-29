@@ -1,7 +1,6 @@
 {
   "buildCommand": "cd AI-SEARCH && npm install && npm run build",
   "outputDirectory": "AI-SEARCH/dist",
-  "devCommand": "npm run dev",
   "installCommand": "cd AI-SEARCH && npm install",
   "framework": "vite",
   "rewrites": [
@@ -15,7 +14,7 @@
     }
   ],
   "functions": {
-    "api/search.js": {
+    "AI-SEARCH/api/search.js": {
       "runtime": "nodejs18.x"
     }
   },
