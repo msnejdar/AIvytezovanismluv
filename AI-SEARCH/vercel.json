@@ -48,8 +48,8 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "main": true,
-      "master": false
+      "main": false,
+      "master": true
     }
   }
 }
