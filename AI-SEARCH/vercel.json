@@ -1,8 +1,8 @@
 {
-  "buildCommand": "cd AI-SEARCH && npm install && npm run build",
-  "outputDirectory": "AI-SEARCH/dist",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "devCommand": "npm run dev",
-  "installCommand": "cd AI-SEARCH && npm install",
+  "installCommand": "npm install",
   "framework": "vite",
   "rewrites": [
     {
@@ -45,5 +45,11 @@
         }
       ]
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "master": false
+    }
+  }
 }
