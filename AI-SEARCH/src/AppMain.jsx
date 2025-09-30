@@ -28,6 +28,7 @@ function AppMain() {
   const [batchQueries, setBatchQueries] = useState([]) // Categorized queries
   const [selectedQueries, setSelectedQueries] = useState(new Set())
   const [batchProgress, setBatchProgress] = useState(null) // {current, total, currentQuery}
+  const [queryCategoryMap, setQueryCategoryMap] = useState(new Map()) // query -> category mapping
 
   const fileInputRef = useRef(null)
   const highlightedTextRef = useRef(null)
@@ -105,12 +106,17 @@ function AppMain() {
         const categorized = await categorizeQueries(lines)
         setBatchQueries(categorized)
 
-        // Pre-select all queries
+        // Pre-select all queries and build category map
         const allQueries = new Set()
+        const categoryMap = new Map()
         categorized.forEach(cat => {
-          cat.items.forEach(item => allQueries.add(item))
+          cat.items.forEach(item => {
+            allQueries.add(item)
+            categoryMap.set(item, cat.category)
+          })
         })
         setSelectedQueries(allQueries)
+        setQueryCategoryMap(categoryMap)
 
         setShowBatchModal(true)
       } catch (error) {
@@ -171,29 +177,59 @@ function AppMain() {
     setBatchProgress({ current: 0, total: selectedList.length, currentQuery: '' })
 
     const results = []
+    const BATCH_SIZE = 5
 
-    for (let i = 0; i < selectedList.length; i++) {
-      const query = selectedList[i]
-      setBatchProgress({ current: i + 1, total: selectedList.length, currentQuery: query })
+    // Process in batches of 5
+    for (let i = 0; i < selectedList.length; i += BATCH_SIZE) {
+      const batch = selectedList.slice(i, i + BATCH_SIZE)
+
+      setBatchProgress({
+        current: Math.min(i + BATCH_SIZE, selectedList.length),
+        total: selectedList.length,
+        currentQuery: batch.join(', ')
+      })
 
       try {
-        const result = await aiSearch(documentText, query)
-
-        if (result.success) {
-          results.push({
-            query,
-            answer: result.answer,
-            timestamp: new Date().toISOString(),
-            confidence: result.confidence
+        const response = await fetch('http://localhost:3001/api/batch-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            queries: batch,
+            document: documentText
           })
-        }
+        })
 
-        // Pause between requests to avoid rate limiting
-        if (i < selectedList.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 300))
+        if (!response.ok) throw new Error('Batch search failed')
+
+        const data = await response.json()
+
+        // Convert batch results to individual history items
+        data.results.forEach(result => {
+          results.push({
+            query: result.query,
+            category: queryCategoryMap.get(result.query) || 'Ostatní',
+            answer: { type: 'single', value: result.value },
+            timestamp: new Date().toISOString(),
+            confidence: 0.95
+          })
+        })
+
+        // Pause between batches
+        if (i + BATCH_SIZE < selectedList.length) {
+          await new Promise(resolve => setTimeout(resolve, 500))
         }
       } catch (error) {
-        console.error(`Failed to search: ${query}`, error)
+        console.error(`Failed batch search:`, error)
+        // Add "Nenalezeno" for failed batch
+        batch.forEach(query => {
+          results.push({
+            query,
+            category: queryCategoryMap.get(query) || 'Ostatní',
+            answer: { type: 'single', value: 'Nenalezeno' },
+            timestamp: new Date().toISOString(),
+            confidence: 0
+          })
+        })
       }
     }
 
@@ -201,13 +237,14 @@ function AppMain() {
     setBatchProgress(null)
     setIsSearching(false)
     setShowTable(true) // Auto-show table
-  }, [selectedQueries, documentText])
+  }, [selectedQueries, documentText, queryCategoryMap])
 
   const handleExport = async (format, selectedData) => {
     try {
       // Transform table data for export
       // selectedData is array from TableView with: {query, label, value, type, absoluteValue}
       const dataForExport = selectedData.map(row => ({
+        category: row.category || '',
         query: row.query || '',
         label: row.label || '',
         value: row.value || '',

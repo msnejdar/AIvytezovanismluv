@@ -5,7 +5,7 @@ const TableView = ({
   searchResults = [],
   onExport,
   onResultClick,
-  selectedFields = ['query', 'label', 'value', 'absoluteValue', 'type'],
+  selectedFields = ['category', 'query', 'label', 'value', 'absoluteValue', 'type'],
   showExportOptions = true
 }) => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
@@ -14,6 +14,7 @@ const TableView = ({
 
   // Available columns for export
   const availableColumns = [
+    { key: 'category', label: 'Kategorie', type: 'text' },
     { key: 'query', label: 'Dotaz', type: 'text' },
     { key: 'label', label: 'Popisek', type: 'text' },
     { key: 'value', label: 'Hodnota', type: 'text' },
@@ -61,6 +62,7 @@ const TableView = ({
 
           rows.push({
             id: `${index}-0`,
+            category: result.category || '',
             query: result.query || 'Dotaz',
             label: result.answer.label || 'Výsledek',
             value: value,
@@ -77,6 +79,7 @@ const TableView = ({
 
             rows.push({
               id: `${index}-${itemIndex}`,
+              category: result.category || '',
               query: result.query || 'Dotaz',
               label: item.label || 'Výsledek',
               value: value,
@@ -94,6 +97,7 @@ const TableView = ({
 
         rows.push({
           id: result.id || index,
+          category: result.category || '',
           query: result.query || 'Dotaz',
           label: result.label || 'Výsledek',
           value: value,

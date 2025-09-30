@@ -143,7 +143,7 @@ export class ExportSystem {
    * CSV Helper Methods
    */
   getCSVHeaders(sampleItem) {
-    return ['Dotaz', 'Popisek', 'Hodnota', 'Absolutní hodnota', 'Typ']
+    return ['Kategorie', 'Dotaz', 'Popisek', 'Hodnota', 'Absolutní hodnota', 'Typ']
   }
 
   formatRowForCSV(item, headers) {
@@ -158,6 +158,7 @@ export class ExportSystem {
 
     return headers.map(header => {
       switch (header) {
+        case 'Kategorie': return escapeCSV(item.category)
         case 'Dotaz': return escapeCSV(item.query)
         case 'Popisek': return escapeCSV(item.label)
         case 'Hodnota': return escapeCSV(item.value)
@@ -172,9 +173,10 @@ export class ExportSystem {
    * Excel Helper Methods
    */
   createExcelResultsSheet(data) {
-    const headers = ['Dotaz', 'Popisek', 'Hodnota', 'Absolutní hodnota', 'Typ']
+    const headers = ['Kategorie', 'Dotaz', 'Popisek', 'Hodnota', 'Absolutní hodnota', 'Typ']
 
     const rows = data.map(item => [
+      item.category || '',
       item.query || '',
       item.label || '',
       item.value || '',
@@ -187,6 +189,7 @@ export class ExportSystem {
 
     // Set column widths
     worksheet['!cols'] = [
+      { width: 20 }, // Kategorie
       { width: 25 }, // Dotaz
       { width: 20 }, // Popisek
       { width: 20 }, // Hodnota
@@ -326,25 +329,27 @@ export class ExportSystem {
 
   addPDFMainTable(doc, data) {
     const tableData = data.map(item => [
-      (item.query || '').substring(0, 25) + (item.query?.length > 25 ? '...' : ''),
-      (item.label || '').substring(0, 20) + (item.label?.length > 20 ? '...' : ''),
-      (item.value || '').substring(0, 20) + (item.value?.length > 20 ? '...' : ''),
+      (item.category || '').substring(0, 18) + (item.category?.length > 18 ? '...' : ''),
+      (item.query || '').substring(0, 20) + (item.query?.length > 20 ? '...' : ''),
+      (item.label || '').substring(0, 15) + (item.label?.length > 15 ? '...' : ''),
+      (item.value || '').substring(0, 15) + (item.value?.length > 15 ? '...' : ''),
       item.absoluteValue || '',
       item.type || ''
     ])
 
     autoTable(doc, {
-      head: [['Dotaz', 'Popisek', 'Hodnota', 'Absolutní hodnota', 'Typ']],
+      head: [['Kategorie', 'Dotaz', 'Popisek', 'Hodnota', 'Absolutní hodnota', 'Typ']],
       body: tableData,
       startY: 95,
-      styles: { fontSize: 8 },
+      styles: { fontSize: 7 },
       headStyles: { fillColor: [200, 200, 200] },
       columnStyles: {
-        0: { cellWidth: 45 },
+        0: { cellWidth: 35 },
         1: { cellWidth: 35 },
-        2: { cellWidth: 35 },
-        3: { cellWidth: 35 },
-        4: { cellWidth: 20 }
+        2: { cellWidth: 28 },
+        3: { cellWidth: 28 },
+        4: { cellWidth: 28 },
+        5: { cellWidth: 16 }
       },
       margin: { left: 20, right: 20 }
     })
