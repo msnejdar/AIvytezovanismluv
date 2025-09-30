@@ -303,13 +303,13 @@ body {
   border-radius: 12px;
   font-size: 15px;
   color: var(--glass-gray-800);
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   outline: none;
   font-family: var(--font-primary);
-  line-height: 1.5;
+  line-height: 24px; /* Match JS lineHeight */
   min-height: 48px;
-  max-height: 300px;
-  resize: vertical;
+  max-height: 144px; /* 5 rows * 24px line-height + 24px padding */
+  resize: none; /* Disable manual resize, auto-resize only */
   overflow-y: auto;
 }
 

@@ -466,7 +466,17 @@ function AppMain() {
                 placeholder="Co chcete vyhledat? (Ctrl+Enter pro hledání)"
                 className="main-search-input"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+
+                  // Auto-resize textarea based on content (max 5 rows)
+                  const textarea = e.target
+                  textarea.style.height = 'auto'
+                  const lineHeight = 24 // Approximate line height in px
+                  const maxHeight = lineHeight * 5 // 5 rows max
+                  const newHeight = Math.min(textarea.scrollHeight, maxHeight)
+                  textarea.style.height = newHeight + 'px'
+                }}
                 onKeyPress={(e) => {
                   // Only search on Ctrl/Cmd+Enter, not plain Enter (allow newlines)
                   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
