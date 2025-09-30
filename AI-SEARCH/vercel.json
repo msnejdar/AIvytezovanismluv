@@ -1,8 +1,7 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
+  "outputDirectory": "AI-SEARCH/dist",
+  "installCommand": "npm ci",
   "framework": "vite",
   "rewrites": [
     {
@@ -15,7 +14,7 @@
     }
   ],
   "functions": {
-    "api/search.js": {
+    "AI-SEARCH/api/search.js": {
       "runtime": "nodejs18.x"
     }
   },
@@ -45,11 +44,5 @@
         }
       ]
     }
-  ],
-  "git": {
-    "deploymentEnabled": {
-      "main": false,
-      "master": true
-    }
-  }
+  ]
 }
