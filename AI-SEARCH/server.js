@@ -31,40 +31,46 @@ async function callClaudeAPI(query, document, retries = 3, delay = 1000) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': process.env.VITE_CLAUDE_API_KEY,
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
           model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 1024,
+          max_tokens: 512,
           messages: [{
             role: 'user',
-          content: `Analyzuj následující text a nalezni přesně to, co požaduje dotaz. Vrať odpověď v JSON formátu s jednotlivými výsledky jako klikatelnými položkami.
+            content: `Analyzuj následující text a najdi PŘESNĚ to, co požaduje uživatel.
 
-DOTAZ: "${query}"
+DŮLEŽITÉ: Vrať POUZE samotnou odpověď, nic víc. Žádný vysvětlující text.
 
-TEXT DOKUMENTU:
+Uživatel hledá: "${query}"
+
+Text dokumentu:
 ${document}
 
 INSTRUKCE:
-- Vrať odpověď ve formátu: {"results": [{"label": "popis", "value": "hodnota", "highlight": "text k zvýraznění", "start": 123, "end": 456}]}
-- start a end jsou integer indexy (0-based) do původního TEXTU DOKUMENTU.
-- highlight musí být přesný úsek textu mezi indexy start a end (ověřit, že text.substring(start, end) === highlight).
-- label: krátký popis co to je (např. "Rodné číslo Jana Dvořáka")
-- value: čistá hodnota (např. "123456/7890")
-- Pokud nic nenajdeš: {"results": []}
+- Pokud hledá konkrétní údaj (rodné číslo, datum, částku, jméno, atd.), vrať POUZE ten údaj
+- Pokud hledá větu nebo kontext, vrať přesnou větu z textu
+- Pokud nic nenajdeš, vrať "Nenalezeno"
+- NIKDY nevysvětluj, jen vrať výsledek
 
-Příklady:
-Dotaz "rodné číslo Jana Dvořáka" → {"results": [{"label": "Rodné číslo Jana Dvořáka", "value": "123456/7890", "highlight": "123456/7890", "start": 234, "end": 246}]}
-Dotaz "celková kupní cena" → {"results": [{"label": "Celková kupní cena", "value": "7 850 000 Kč", "highlight": "7 850 000", "start": 1234, "end": 1242}]}`
+PŘÍKLADY:
+Dotaz: "rodné číslo Tomáše Vokouna" → Odpověď: "920515/1234"
+Dotaz: "celková cena" → Odpověď: "7 850 000 Kč"
+Dotaz: "datum podpisu" → Odpověď: "15.1.2024"
+Dotaz: "kdo je prodávající" → Odpověď: "Jan Novák"
+
+Tvoje odpověď:`
           }]
         })
       });
 
       const data = await response.json();
-      
+
       if (response.ok) {
-        return { success: true, data };
+        // Extract answer from Claude response
+        const answer = data.content?.[0]?.text?.trim() || 'Nenalezeno';
+        return { success: true, answer };
       } else {
         // Pokud je API přetížené a máme ještě pokusy, zkusíme znovu
         if (data.error?.type === 'overloaded_error' && attempt < retries - 1) {
@@ -94,16 +100,23 @@ app.post('/api/search', async (req, res) => {
   const { query, document } = req.body;
 
   if (!query || !document) {
-    return res.status(400).json({ error: 'Query and document are required' });
+    return res.status(400).json({ error: 'Query a document jsou povinné' });
   }
 
+  console.log(`[API] Vyhledávání: "${query.substring(0, 50)}..."`);
+
   const result = await callClaudeAPI(query, document);
-  
+
   if (result.success) {
-    res.json(result.data);
+    console.log(`[API] Odpověď: "${result.answer.substring(0, 100)}..."`);
+    res.json({ answer: result.answer, confidence: 0.95 });
   } else {
     const status = result.status || 500;
-    res.status(status).json({ error: result.error });
+    console.error(`[API] Chyba:`, result.error);
+    res.status(status).json({
+      error: result.error?.message || 'Chyba při vyhledávání',
+      answer: null
+    });
   }
 });
 

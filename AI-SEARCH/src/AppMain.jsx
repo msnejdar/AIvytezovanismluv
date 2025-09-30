@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import './App.css'
 import TableView from './components/TableView.jsx'
 import { ExportSystem } from './exportSystem.js'
-import { analyzeContractDocument } from './contractAnalyzer.js'
+import { aiSearch } from './aiSearch.js'
+import { removeDiacritics } from './documentNormalizer.js'
 
 const exportSystem = new ExportSystem()
 
@@ -11,13 +12,14 @@ function AppMain() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  
+
   // Search and document state
   const [searchQuery, setSearchQuery] = useState('')
   const [documentText, setDocumentText] = useState('')
-  const [searchResults, setSearchResults] = useState([])
+  const [searchAnswer, setSearchAnswer] = useState(null) // AI answer
+  const [searchHistory, setSearchHistory] = useState([]) // History for table
   const [isSearching, setIsSearching] = useState(false)
-  const [activeView, setActiveView] = useState('search') // 'search' or 'table'
+  const [showTable, setShowTable] = useState(false) // Show/hide table
   
   const fileInputRef = useRef(null)
 
@@ -46,7 +48,9 @@ function AppMain() {
     setPassword('')
     setSearchQuery('')
     setDocumentText('')
-    setSearchResults([])
+    setSearchAnswer(null)
+    setSearchHistory([])
+    setShowTable(false)
   }
 
   const handleFileUpload = (event) => {
@@ -62,13 +66,29 @@ function AppMain() {
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim() || !documentText.trim()) return
-    
+
     setIsSearching(true)
+    setSearchAnswer(null)
+    setError('')
+
     try {
-      // Basic search with contract analysis
-      const results = await analyzeContractDocument(documentText, searchQuery)
-      setSearchResults(results)
-      setActiveView('table')
+      // Call AI search with normalized text
+      const result = await aiSearch(documentText, searchQuery)
+
+      if (result.success) {
+        setSearchAnswer(result.answer)
+
+        // Add to history for table view
+        const historyItem = {
+          query: searchQuery,
+          answer: result.answer,
+          timestamp: new Date().toISOString(),
+          confidence: result.confidence
+        }
+        setSearchHistory(prev => [historyItem, ...prev])
+      } else {
+        setError(result.error || 'Chyba při vyhledávání')
+      }
     } catch (error) {
       console.error('Search error:', error)
       setError('Chyba při vyhledávání')
@@ -79,8 +99,15 @@ function AppMain() {
 
   const handleExport = async (format, selectedData) => {
     try {
-      await exportSystem.exportData(format, selectedData, {
-        documentTitle: `Analýza dokumentu - ${new Date().toLocaleDateString('cs-CZ')}`,
+      // Convert history to table format
+      const dataForExport = selectedData || searchHistory.map(item => ({
+        label: item.query,
+        value: item.answer,
+        confidence: item.confidence
+      }))
+
+      await exportSystem.exportData(format, dataForExport, {
+        documentTitle: `AI Vyhledávání - ${new Date().toLocaleDateString('cs-CZ')}`,
         includeMetadata: true
       })
     } catch (error) {
@@ -166,7 +193,7 @@ function AppMain() {
         </div>
       )}
 
-      {activeView === 'search' ? (
+      {!showTable ? (
         <div className="dual-pane-container">
           <div className="left-pane">
             <div className="pane-header">
@@ -201,48 +228,37 @@ function AppMain() {
               </button>
             </div>
 
-            <div className="results-section">
-              {searchResults.length > 0 ? (
-                <>
-                  <div className="results-header">
-                    <span className="results-count">{searchResults.length} výsledků</span>
-                    <button
-                      className="view-table-link"
-                      onClick={() => setActiveView('table')}
-                    >
-                      Zobrazit tabulku →
-                    </button>
-                  </div>
-                  <div className="results-list">
-                    {searchResults.slice(0, 8).map((result, index) => (
-                      <div key={index} className="result-card">
-                        <div className="result-label">{result.label || 'Výsledek'}</div>
-                        <div className="result-value">{result.value}</div>
-                        <div className="result-confidence">
-                          <div className="confidence-bar">
-                            <div
-                              className="confidence-fill"
-                              style={{width: `${Math.round((result.confidence || 0) * 100)}%`}}
-                            />
-                          </div>
-                          <span className="confidence-text">
-                            {Math.round((result.confidence || 0) * 100)}%
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="results-empty-state">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" opacity="0.3">
-                    <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.5"/>
-                    <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            {/* AI Answer displayed directly */}
+            {searchAnswer && (
+              <div className="ai-answer-section">
+                <div className="ai-answer-header">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  <p>Zadejte dotaz a vložte text pro vyhledávání</p>
+                  <span>Výsledek:</span>
                 </div>
-              )}
-            </div>
+                <div className="ai-answer-box">
+                  {searchAnswer}
+                </div>
+              </div>
+            )}
+
+            {/* Show table button */}
+            {searchHistory.length > 0 && (
+              <button
+                className="show-table-btn"
+                onClick={() => setShowTable(true)}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <rect x="3" y="3" width="7" height="7" stroke="currentColor" strokeWidth="2" rx="1"/>
+                  <rect x="14" y="3" width="7" height="7" stroke="currentColor" strokeWidth="2" rx="1"/>
+                  <rect x="3" y="14" width="7" height="7" stroke="currentColor" strokeWidth="2" rx="1"/>
+                  <rect x="14" y="14" width="7" height="7" stroke="currentColor" strokeWidth="2" rx="1"/>
+                </svg>
+                Zobrazit tabulku ({searchHistory.length})
+              </button>
+            )}
           </div>
 
           <div className="right-pane">
@@ -284,19 +300,27 @@ function AppMain() {
           </div>
         </div>
       ) : (
-        <div className="table-view-container">
-          <button
-            className="back-to-search"
-            onClick={() => setActiveView('search')}
-          >
-            ← Zpět na vyhledávání
-          </button>
+        <div className="table-view-wrapper">
+          <div className="table-header">
+            <button
+              className="back-to-search"
+              onClick={() => setShowTable(false)}
+            >
+              ← Zpět na vyhledávání
+            </button>
+            <h2 className="table-title">Historie vyhledávání ({searchHistory.length})</h2>
+          </div>
           <TableView
-            searchResults={searchResults}
+            searchResults={searchHistory.map(item => ({
+              label: item.query,
+              value: item.answer,
+              confidence: item.confidence
+            }))}
             onExport={handleExport}
             onResultClick={(result) => {
-              setActiveView('search')
-              setSearchQuery(result.value)
+              setShowTable(false)
+              setSearchQuery(result.label)
+              setSearchAnswer(result.value)
             }}
           />
         </div>
