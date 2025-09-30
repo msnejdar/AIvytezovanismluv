@@ -569,7 +569,7 @@ body {
 .document-display {
   flex: 1;
   background: var(--glass-white-50);
-  border: 1px solid var(--glass-gray-200);
+  border: 1.5px solid var(--glass-gray-300);
   border-radius: 12px;
   overflow: hidden; /* Keep for border-radius clipping */
   position: relative;
@@ -610,7 +610,7 @@ body {
   max-height: 100%;
   padding: 20px;
   background: var(--glass-white-50);
-  border: 1px solid var(--glass-gray-200);
+  border: 1.5px solid var(--glass-gray-300);
   border-radius: 12px;
   font-size: 15px;
   line-height: 1.7;
