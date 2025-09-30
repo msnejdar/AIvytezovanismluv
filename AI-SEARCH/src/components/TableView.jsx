@@ -191,7 +191,9 @@ const TableView = ({
   }
 
   const getSelectedRowsData = () => {
-    return sortedData.filter(row => selectedRows.has(row.id))
+    const selected = sortedData.filter(row => selectedRows.has(row.id))
+    // If nothing is selected, export all data
+    return selected.length > 0 ? selected : sortedData
   }
 
   return (
