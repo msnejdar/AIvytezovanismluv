@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react'
 import './TableView.css'
 
-const TableView = ({ 
-  searchResults = [], 
-  onExport, 
+const TableView = ({
+  searchResults = [],
+  onExport,
   onResultClick,
-  selectedFields = ['label', 'value', 'type', 'confidence', 'context'],
-  showExportOptions = true 
+  selectedFields = ['label', 'value', 'type', 'absoluteValue'],
+  showExportOptions = true
 }) => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
   const [selectedRows, setSelectedRows] = useState(new Set())
@@ -17,47 +17,90 @@ const TableView = ({
     { key: 'label', label: 'Popisek', type: 'text' },
     { key: 'value', label: 'Hodnota', type: 'text' },
     { key: 'type', label: 'Typ', type: 'text' },
-    { key: 'confidence', label: 'Spolehlivost', type: 'number' },
-    { key: 'context', label: 'Kontext', type: 'text' },
-    { key: 'matchCount', label: 'Počet shod', type: 'number' },
-    { key: 'startPosition', label: 'Pozice', type: 'number' },
-    { key: 'extractedAt', label: 'Extrahováno', type: 'datetime' }
+    { key: 'absoluteValue', label: 'Absolutní hodnota', type: 'text' }
   ]
+
+  // Detect if value is number or text
+  const detectValueType = (value) => {
+    if (!value) return 'text'
+    const str = String(value).trim()
+
+    // Check if it's primarily numeric (digits, spaces, common separators, currency)
+    // Birth number: 940819/1011
+    // Amount: 7.850.000,- Kč
+    // Phone: +420 123 456 789
+    const numericPattern = /^[\d\s.,+\-/]+\s*[A-Za-zčČ]*\.?-?$/
+
+    return numericPattern.test(str) ? 'number' : 'text'
+  }
+
+  // Extract absolute numeric value (remove all non-digits)
+  const extractAbsoluteValue = (value, valueType) => {
+    if (!value || valueType === 'text') return ''
+
+    const str = String(value)
+    // Remove everything except digits
+    const digitsOnly = str.replace(/\D/g, '')
+
+    return digitsOnly || ''
+  }
 
   // Transform search results for table display
   const tableData = useMemo(() => {
-    return searchResults.map((result, index) => {
-      const primaryMatch = result.matches?.[0]
+    const rows = []
 
-      // Extract actual value from AI response object
-      let displayValue = ''
+    searchResults.forEach((result, index) => {
       if (result.answer) {
-        // AI response format: {type: "single", value: "..."} or {type: "multiple", results: [...]}
+        // AI response format
         if (result.answer.type === 'single') {
-          displayValue = result.answer.value
-        } else if (result.answer.type === 'multiple' && result.answer.results?.length > 0) {
-          // For multiple results, show all values separated by comma
-          displayValue = result.answer.results.map(r => r.value).join(', ')
-        }
-      } else if (typeof result.value === 'string') {
-        displayValue = result.value
-      } else if (result.content) {
-        displayValue = result.content
-      }
+          // Single result - one row
+          const value = result.answer.value
+          const valueType = detectValueType(value)
+          const absoluteValue = extractAbsoluteValue(value, valueType)
 
-      return {
-        id: result.id || index,
-        label: result.query || result.label || 'Výsledek',
-        value: displayValue,
-        type: result.type || 'text',
-        confidence: result.confidence || primaryMatch?.confidence || primaryMatch?.score || 0,
-        context: result.context || '',
-        matchCount: result.matches?.length || 0,
-        startPosition: primaryMatch?.start || 0,
-        extractedAt: new Date().toISOString(),
-        rawResult: result
+          rows.push({
+            id: `${index}-0`,
+            label: result.query || 'Výsledek',
+            value: value,
+            type: valueType,
+            absoluteValue: absoluteValue,
+            rawResult: result
+          })
+        } else if (result.answer.type === 'multiple' && result.answer.results?.length > 0) {
+          // Multiple results - separate row for each
+          result.answer.results.forEach((item, itemIndex) => {
+            const value = item.value
+            const valueType = detectValueType(value)
+            const absoluteValue = extractAbsoluteValue(value, valueType)
+
+            rows.push({
+              id: `${index}-${itemIndex}`,
+              label: item.label || result.query || 'Výsledek',
+              value: value,
+              type: valueType,
+              absoluteValue: absoluteValue,
+              rawResult: result
+            })
+          })
+        }
+      } else {
+        // Fallback for non-AI results
+        const value = typeof result.value === 'string' ? result.value : (result.content || '')
+        const valueType = detectValueType(value)
+        const absoluteValue = extractAbsoluteValue(value, valueType)
+
+        rows.push({
+          id: result.id || index,
+          label: result.query || result.label || 'Výsledek',
+          value: value,
+          type: valueType,
+          absoluteValue: absoluteValue,
+          rawResult: result
+        })
       }
     })
+
+    return rows
   }, [searchResults])
 
   // Filter data based on search text
@@ -145,33 +188,6 @@ const TableView = ({
 
   const getSelectedRowsData = () => {
     return sortedData.filter(row => selectedRows.has(row.id))
-  }
-
-  const detectValueType = (value) => {
-    if (!value) return 'text'
-    
-    const str = String(value)
-    if (/^\d{6}\/\d{3,4}$/.test(str)) return 'birthNumber'
-    if (/^\d+(?:[.,]\d+)?\s*(?:Kč|CZK|€|EUR)$/i.test(str)) return 'currency'
-    if (/^(\+420\s?)?\d{3}\s?\d{3}\s?\d{3}$/.test(str)) return 'phone'
-    if (/^\d+\/\d+$/.test(str)) return 'fraction'
-    if (/^[A-Z][a-z]+\s+[A-Z][a-z]+$/.test(str)) return 'name'
-    if (/^\d+$/.test(str)) return 'number'
-    
-    return 'text'
-  }
-
-  const extractContext = (value, fullText) => {
-    if (!value || !fullText) return ''
-    
-    const index = fullText.indexOf(value)
-    if (index === -1) return ''
-    
-    const start = Math.max(0, index - 50)
-    const end = Math.min(fullText.length, index + value.length + 50)
-    const context = fullText.slice(start, end)
-    
-    return context.replace(value, `**${value}**`)
   }
 
   return (
