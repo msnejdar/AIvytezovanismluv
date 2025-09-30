@@ -292,6 +292,7 @@ body {
 .search-input-group {
   display: flex;
   gap: 10px;
+  align-items: flex-start;
 }
 
 .main-search-input {
@@ -304,6 +305,12 @@ body {
   color: var(--glass-gray-800);
   transition: all 0.2s ease;
   outline: none;
+  font-family: var(--font-primary);
+  line-height: 1.5;
+  min-height: 48px;
+  max-height: 300px;
+  resize: vertical;
+  overflow-y: auto;
 }
 
 .main-search-input::placeholder {
@@ -314,6 +321,24 @@ body {
   background: var(--glass-white);
   border-color: var(--glass-gray-400);
   box-shadow: 0 0 0 3px var(--glass-white-20);
+}
+
+/* Scrollbar for search textarea */
+.main-search-input::-webkit-scrollbar {
+  width: 8px;
+}
+
+.main-search-input::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.main-search-input::-webkit-scrollbar-thumb {
+  background: var(--glass-gray-300);
+  border-radius: 4px;
+}
+
+.main-search-input::-webkit-scrollbar-thumb:hover {
+  background: var(--glass-gray-400);
 }
 
 .main-search-btn {

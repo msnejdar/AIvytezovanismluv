@@ -425,13 +425,19 @@ function AppMain() {
                 </div>
 
                 <div className="search-input-group">
-              <input
-                type="text"
-                placeholder="Co chcete vyhledat?"
+              <textarea
+                placeholder="Co chcete vyhledat? (Ctrl+Enter pro hledání)"
                 className="main-search-input"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                onKeyPress={(e) => {
+                  // Only search on Ctrl/Cmd+Enter, not plain Enter (allow newlines)
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault()
+                    handleSearch()
+                  }
+                }}
+                rows={1}
               />
               <button
                 className="main-search-btn"
