@@ -1072,9 +1072,47 @@ body {
 }
 
 .batch-category-header input[type="checkbox"] {
+  /* Hide default checkbox */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  /* Custom glass checkbox */
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--glass-white-70);
+  backdrop-filter: blur(var(--blur-md));
+  border: 1.5px solid var(--glass-gray-300);
+  box-shadow: var(--shadow-sm), var(--shadow-inner);
   cursor: pointer;
-  width: 18px;
-  height: 18px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.batch-category-header input[type="checkbox"]:hover {
+  border-color: var(--glass-gray-400);
+  background: var(--glass-white-80);
+  box-shadow: var(--shadow-md);
+}
+
+.batch-category-header input[type="checkbox"]:checked {
+  background: linear-gradient(135deg, var(--glass-gray-700), var(--glass-gray-600));
+  border-color: var(--glass-gray-700);
+  box-shadow: var(--shadow-md);
+}
+
+.batch-category-header input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 .batch-category-name {
@@ -1104,9 +1142,47 @@ body {
 }
 
 .batch-item input[type="checkbox"] {
+  /* Hide default checkbox */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  /* Custom glass checkbox - smaller for items */
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: var(--glass-white-60);
+  backdrop-filter: blur(var(--blur-sm));
+  border: 1.5px solid var(--glass-gray-300);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
-  width: 16px;
-  height: 16px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.batch-item input[type="checkbox"]:hover {
+  border-color: var(--glass-gray-400);
+  background: var(--glass-white-70);
+  box-shadow: var(--shadow-md);
+}
+
+.batch-item input[type="checkbox"]:checked {
+  background: linear-gradient(135deg, var(--glass-gray-600), var(--glass-gray-500));
+  border-color: var(--glass-gray-600);
+  box-shadow: var(--shadow-sm);
+}
+
+.batch-item input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 .batch-item span {
