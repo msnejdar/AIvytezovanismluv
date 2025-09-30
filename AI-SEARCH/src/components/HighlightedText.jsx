@@ -11,7 +11,10 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
   const highlightRefs = useRef([]);
   const highlightsByValue = useRef(new Map()); // Map of value -> refs
 
+  console.log('[HighlightedText] RENDER - text length:', text?.length, 'highlight:', highlight);
+
   useEffect(() => {
+    console.log('[HighlightedText] useEffect - resetting refs');
     highlightRefs.current = [];
     highlightsByValue.current = new Map();
   }, [text, highlight]);
@@ -86,12 +89,15 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
 
   // If no highlight, return plain text
   if (!highlight || !text) {
+    console.log('[HighlightedText] No highlight or no text, returning plain text');
     return (
       <div className="highlighted-text-container" ref={containerRef}>
         {text}
       </div>
     );
   }
+
+  console.log('[HighlightedText] Processing highlights...');
 
   // Normalize highlight to array
   const highlightValues = Array.isArray(highlight) ? highlight : [highlight];
@@ -168,6 +174,9 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
     });
   }
 
+  console.log('[HighlightedText] Built parts:', parts.length, 'parts');
+  console.log('[HighlightedText] Highlight positions found:', highlightPositions.length);
+
   return (
     <div className="highlighted-text-container" ref={containerRef}>
       {parts.map((part, index) => {
@@ -177,12 +186,14 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
               key={index}
               ref={el => {
                 if (el) {
+                  console.log('[HighlightedText] Ref callback for:', part.value, 'refIndex:', part.refIndex);
                   highlightRefs.current[part.refIndex] = el;
                   // Track by value for targeted highlighting
                   if (!highlightsByValue.current.has(part.value)) {
                     highlightsByValue.current.set(part.value, []);
                   }
                   highlightsByValue.current.get(part.value).push(el);
+                  console.log('[HighlightedText] Total refs now:', highlightRefs.current.length);
                 }
               }}
               className="text-highlight"
