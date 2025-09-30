@@ -179,23 +179,36 @@ const TableView = ({
             <button
               onClick={() => onExport?.('csv', getSelectedRowsData())}
               disabled={sortedData.length === 0}
-              className="export-button csv"
+              className="export-button"
             >
-              📊 CSV
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              CSV
             </button>
             <button
               onClick={() => onExport?.('xlsx', getSelectedRowsData())}
               disabled={sortedData.length === 0}
-              className="export-button xlsx"
+              className="export-button"
             >
-              📈 Excel
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M3 3v18h18V3H3zm16 16H5V5h14v14z" fill="currentColor"/>
+                <path d="M7 7h4v4H7zM13 7h4v4h-4zM7 13h4v4H7zM13 13h4v4h-4z" fill="currentColor"/>
+              </svg>
+              Excel
             </button>
             <button
               onClick={() => onExport?.('pdf', getSelectedRowsData())}
               disabled={sortedData.length === 0}
-              className="export-button pdf"
+              className="export-button"
             >
-              📄 PDF
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14 2v6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9 15h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              PDF
             </button>
           </div>
         )}
@@ -262,17 +275,23 @@ const TableView = ({
                 <td className="actions-column">
                   <button
                     onClick={() => onResultClick?.(row.rawResult)}
-                    className="action-button highlight"
+                    className="action-button"
                     title="Zvýraznit v dokumentu"
                   >
-                    🔍
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
+                      <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
                   </button>
                   <button
                     onClick={() => navigator.clipboard.writeText(row.value)}
-                    className="action-button copy"
+                    className="action-button"
                     title="Kopírovat hodnotu"
                   >
-                    📋
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
+                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
                   </button>
                 </td>
               </tr>
