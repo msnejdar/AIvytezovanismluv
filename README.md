@@ -24,4 +24,4 @@ npm run build
 ## Deployment
 Automatický deployment na Vercel při každém push do main branch.
 
-Last update: Mon Sep 29 2025
+Last update: Tue Sep 30 2025
