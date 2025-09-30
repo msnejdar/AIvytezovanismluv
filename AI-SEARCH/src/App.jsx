@@ -1831,7 +1831,7 @@ function App() {
             onChange={(e) => setDocumentText(e.target.value)}
             style={{ display: highlightRanges.length > 0 ? 'none' : 'block' }}
           />
-          {highlightRanges.length === 0 && (isDocumentPreparing || showNormalizationOverlay) && (
+          {highlightRanges.length === 0 && isDocumentPreparing && (
             <div className="document-overlay">Připravuji dokument…</div>
           )}
           {highlightRanges.length > 0 && (
