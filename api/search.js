@@ -70,7 +70,7 @@ async function callClaudeAPI(query, document, retries = 3, delay = 1000) {
             role: 'user',
             content: `Analyzuj následující text a najdi PŘESNĚ to, co požaduje uživatel.
 
-DŮLEŽITÉ: Vrať POUZE samotnou odpověď, nic víc. Žádný vysvětlující text.
+DŮLEŽITÉ: Vrať odpověď POUZE jako validní JSON objekt. Žádný další text.
 
 Uživatel hledá: "${query}"
 
@@ -78,18 +78,26 @@ Text dokumentu:
 ${document}
 
 INSTRUKCE:
-- Pokud hledá konkrétní údaj (rodné číslo, datum, částku, jméno, atd.), vrať POUZE ten údaj
-- Pokud hledá větu nebo kontext, vrať přesnou větu z textu
-- Pokud nic nenajdeš, vrať "Nenalezeno"
-- NIKDY nevysvětluj, jen vrať výsledek
+- Pokud hledá JEDEN údaj, vrať JSON: {"type": "single", "value": "nalezená hodnota"}
+- Pokud hledá VÍCE údajů (např. "všechna rodná čísla"), vrať JSON: {"type": "multiple", "results": [{"label": "Jméno osoby", "value": "hodnota"}, ...]}
+- Pokud nic nenajdeš, vrať: {"type": "single", "value": "Nenalezeno"}
+- NIKDY nevysvětluj, jen vrať JSON
 
 PŘÍKLADY:
-Dotaz: "rodné číslo Tomáše Vokouna" → Odpověď: "920515/1234"
-Dotaz: "celková cena" → Odpověď: "7 850 000 Kč"
-Dotaz: "datum podpisu" → Odpověď: "15.1.2024"
-Dotaz: "kdo je prodávající" → Odpověď: "Jan Novák"
 
-Tvoje odpověď:`
+Dotaz: "rodné číslo Tomáše Vokouna"
+Odpověď: {"type": "single", "value": "920515/1234"}
+
+Dotaz: "všechna rodná čísla prodávajících"
+Odpověď: {"type": "multiple", "results": [{"label": "Jan Novák", "value": "920515/1234"}, {"label": "Marie Svobodová", "value": "850623/5678"}]}
+
+Dotaz: "všechna parcelní čísla"
+Odpověď: {"type": "multiple", "results": [{"label": "Parcela A", "value": "123/45"}, {"label": "Parcela B", "value": "678/90"}]}
+
+Dotaz: "celková cena"
+Odpověď: {"type": "single", "value": "7 850 000 Kč"}
+
+Tvoje odpověď (pouze JSON):`
           }]
         })
       });
@@ -98,8 +106,17 @@ Tvoje odpověď:`
 
       if (response.ok) {
         // Extract answer from Claude response
-        const answer = data.content?.[0]?.text?.trim() || 'Nenalezeno';
-        return { success: true, answer };
+        const rawAnswer = data.content?.[0]?.text?.trim() || '{"type": "single", "value": "Nenalezeno"}';
+
+        // Parse JSON response
+        try {
+          const parsedAnswer = JSON.parse(rawAnswer);
+          return { success: true, answer: parsedAnswer };
+        } catch (parseError) {
+          console.error('Failed to parse Claude response as JSON:', rawAnswer);
+          // Fallback to single value if JSON parsing fails
+          return { success: true, answer: { type: "single", value: rawAnswer } };
+        }
       } else {
         // Pokud je API přetížené a máme ještě pokusy, zkusíme znovu
         if (data.error?.type === 'overloaded_error' && attempt < retries - 1) {

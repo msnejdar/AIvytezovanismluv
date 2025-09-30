@@ -3,26 +3,41 @@ import './HighlightedText.css';
 
 /**
  * Component to display text with highlighted search results
- * Highlights all occurrences of the answer in the document
+ * Supports highlighting multiple values (array) or a single value (string)
  */
 const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) => {
   const containerRef = useRef(null);
   const highlightRefs = useRef([]);
+  const highlightsByValue = useRef(new Map()); // Map of value -> refs
 
   useEffect(() => {
     highlightRefs.current = [];
+    highlightsByValue.current = new Map();
   }, [text, highlight]);
 
-  // Scroll to first highlight when highlight changes
-  const scrollToHighlight = () => {
-    if (highlightRefs.current.length > 0 && highlightRefs.current[0]) {
-      highlightRefs.current[0].scrollIntoView({
+  // Scroll to first highlight of specified values
+  const scrollToHighlight = (valuesToHighlight) => {
+    let refsToAnimate = [];
+
+    if (valuesToHighlight && Array.isArray(valuesToHighlight)) {
+      // Highlight specific values
+      valuesToHighlight.forEach(value => {
+        const refs = highlightsByValue.current.get(value) || [];
+        refsToAnimate.push(...refs);
+      });
+    } else {
+      // Highlight all
+      refsToAnimate = highlightRefs.current.filter(el => el);
+    }
+
+    if (refsToAnimate.length > 0 && refsToAnimate[0]) {
+      refsToAnimate[0].scrollIntoView({
         behavior: 'smooth',
         block: 'center'
       });
 
       // Blink animation
-      highlightRefs.current.forEach((el, index) => {
+      refsToAnimate.forEach((el, index) => {
         if (el) {
           setTimeout(() => {
             el.classList.add('highlight-blink');
@@ -51,33 +66,69 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
     );
   }
 
-  // Find all occurrences of highlight text (case-insensitive)
+  // Normalize highlight to array
+  const highlightValues = Array.isArray(highlight) ? highlight : [highlight];
+
+  // Find all occurrences of all highlight values (case-insensitive)
   const parts = [];
   let lastIndex = 0;
   const lowerText = text.toLowerCase();
-  const lowerHighlight = highlight.toLowerCase();
-  let refIndex = 0;
 
-  let index = lowerText.indexOf(lowerHighlight);
-  while (index !== -1) {
+  // Build a map of positions to highlight
+  const highlightPositions = [];
+  highlightValues.forEach(value => {
+    const lowerValue = value.toLowerCase();
+    let index = lowerText.indexOf(lowerValue);
+    while (index !== -1) {
+      highlightPositions.push({
+        start: index,
+        end: index + value.length,
+        value: value
+      });
+      index = lowerText.indexOf(lowerValue, index + value.length);
+    }
+  });
+
+  // Sort by start position
+  highlightPositions.sort((a, b) => a.start - b.start);
+
+  // Merge overlapping highlights
+  const mergedPositions = [];
+  for (const pos of highlightPositions) {
+    if (mergedPositions.length === 0 || pos.start >= mergedPositions[mergedPositions.length - 1].end) {
+      mergedPositions.push(pos);
+    } else {
+      // Extend previous highlight if overlapping
+      const last = mergedPositions[mergedPositions.length - 1];
+      if (pos.end > last.end) {
+        last.end = pos.end;
+        last.value = text.substring(last.start, last.end); // Use merged text
+      }
+    }
+  }
+
+  // Build parts array
+  let refIndex = 0;
+  mergedPositions.forEach(pos => {
     // Add text before highlight
-    if (index > lastIndex) {
+    if (pos.start > lastIndex) {
       parts.push({
         type: 'text',
-        content: text.substring(lastIndex, index)
+        content: text.substring(lastIndex, pos.start)
       });
     }
 
     // Add highlighted part
+    const content = text.substring(pos.start, pos.end);
     parts.push({
       type: 'highlight',
-      content: text.substring(index, index + highlight.length),
+      content: content,
+      value: pos.value,
       refIndex: refIndex++
     });
 
-    lastIndex = index + highlight.length;
-    index = lowerText.indexOf(lowerHighlight, lastIndex);
-  }
+    lastIndex = pos.end;
+  });
 
   // Add remaining text
   if (lastIndex < text.length) {
@@ -94,7 +145,16 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
           return (
             <mark
               key={index}
-              ref={el => highlightRefs.current[part.refIndex] = el}
+              ref={el => {
+                if (el) {
+                  highlightRefs.current[part.refIndex] = el;
+                  // Track by value for targeted highlighting
+                  if (!highlightsByValue.current.has(part.value)) {
+                    highlightsByValue.current.set(part.value, []);
+                  }
+                  highlightsByValue.current.get(part.value).push(el);
+                }
+              }}
               className="text-highlight"
               onClick={scrollToHighlight}
             >

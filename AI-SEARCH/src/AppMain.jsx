@@ -80,7 +80,12 @@ function AppMain() {
 
       if (result.success) {
         setSearchAnswer(result.answer)
-        setHighlightText(result.answer) // Set text to highlight
+
+        // Extract values for highlighting
+        const valuesToHighlight = result.answer.type === 'multiple'
+          ? result.answer.results.map(r => r.value)
+          : [result.answer.value];
+        setHighlightText(valuesToHighlight)
 
         // Add to history for table view
         const historyItem = {
@@ -254,12 +259,37 @@ function AppMain() {
                   className="ai-answer-box clickable"
                   onClick={() => {
                     if (highlightedTextRef.current) {
-                      highlightedTextRef.current.scrollToHighlight();
+                      // Get all values to highlight
+                      const valuesToHighlight = searchAnswer.type === 'multiple'
+                        ? searchAnswer.results.map(r => r.value)
+                        : [searchAnswer.value];
+                      highlightedTextRef.current.scrollToHighlight(valuesToHighlight);
                     }
                   }}
                   title="Klikněte pro zobrazení v dokumentu"
                 >
-                  {searchAnswer}
+                  {searchAnswer.type === 'single' ? (
+                    <div className="answer-single">{searchAnswer.value}</div>
+                  ) : (
+                    <div className="answer-multiple">
+                      {searchAnswer.results.map((result, index) => (
+                        <div
+                          key={index}
+                          className="answer-item"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent box click
+                            if (highlightedTextRef.current) {
+                              highlightedTextRef.current.scrollToHighlight([result.value]);
+                            }
+                          }}
+                        >
+                          <span className="bullet">•</span>
+                          <span className="answer-label">{result.label}:</span>
+                          <span className="answer-value">{result.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
