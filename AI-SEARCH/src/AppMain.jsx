@@ -681,37 +681,29 @@ function AppMain() {
           <TableView
             searchResults={searchHistory}
             onExport={handleExport}
-            onResultClick={(result) => {
-              console.log('[onResultClick] Clicked result:', result)
-              console.log('[onResultClick] rawResult:', result.rawResult)
-              console.log('[onResultClick] answer:', result.rawResult?.answer)
-
+            onResultClick={(rawResult) => {
               // Close table and show search view with highlighted value
               setShowTable(false)
 
               // Set the query and answer
-              setSearchQuery(result.rawResult.query)
-              setSearchAnswer(result.rawResult.answer)
+              setSearchQuery(rawResult.query)
+              setSearchAnswer(rawResult.answer)
 
               // Extract value(s) to highlight
               let valuesToHighlight = []
-              if (result.rawResult.answer) {
-                if (result.rawResult.answer.type === 'multiple') {
-                  valuesToHighlight = result.rawResult.answer.results.map(r => r.value)
-                } else if (result.rawResult.answer.type === 'single') {
-                  valuesToHighlight = [result.rawResult.answer.value]
+              if (rawResult.answer) {
+                if (rawResult.answer.type === 'multiple') {
+                  valuesToHighlight = rawResult.answer.results.map(r => r.value)
+                } else if (rawResult.answer.type === 'single') {
+                  valuesToHighlight = [rawResult.answer.value]
                 }
               }
-
-              console.log('[onResultClick] valuesToHighlight:', valuesToHighlight)
 
               // Set highlight and scroll to it
               setHighlightText(valuesToHighlight)
 
               // After state update, scroll to highlight
               setTimeout(() => {
-                console.log('[onResultClick] highlightedTextRef.current:', highlightedTextRef.current)
-                console.log('[onResultClick] Calling scrollToHighlight with:', valuesToHighlight)
                 if (highlightedTextRef.current && valuesToHighlight.length > 0) {
                   highlightedTextRef.current.scrollToHighlight(valuesToHighlight)
                 }

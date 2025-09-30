@@ -53,25 +53,18 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
 
   // Scroll to first highlight of specified values (called from parent)
   const scrollToHighlight = (valuesToHighlight) => {
-    console.log('[HighlightedText.scrollToHighlight] Called with:', valuesToHighlight)
-    console.log('[HighlightedText.scrollToHighlight] highlightsByValue:', highlightsByValue.current)
-    console.log('[HighlightedText.scrollToHighlight] highlightRefs:', highlightRefs.current)
-
     let refsToAnimate = [];
 
     if (valuesToHighlight && Array.isArray(valuesToHighlight)) {
       // Try to find specific values using Map
       valuesToHighlight.forEach(value => {
         const normalizedSearchValue = removeDiacritics(value).toLowerCase();
-        console.log('[HighlightedText.scrollToHighlight] Looking for:', value, '→ normalized:', normalizedSearchValue)
 
         // Try both original and normalized value as keys
         let refs = highlightsByValue.current.get(value);
         if (!refs || refs.length === 0) {
           refs = highlightsByValue.current.get(normalizedSearchValue);
         }
-
-        console.log('[HighlightedText.scrollToHighlight] Found refs for', value, ':', refs)
 
         if (refs && refs.length > 0) {
           refsToAnimate.push(...refs);
@@ -80,7 +73,6 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
 
       // If no specific refs found, use all highlights
       if (refsToAnimate.length === 0) {
-        console.log('[HighlightedText.scrollToHighlight] No specific refs found, using all')
         refsToAnimate = highlightRefs.current.filter(el => el);
       }
     } else {
@@ -88,10 +80,7 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
       refsToAnimate = highlightRefs.current.filter(el => el);
     }
 
-    console.log('[HighlightedText.scrollToHighlight] Refs to animate:', refsToAnimate)
-
     if (refsToAnimate.length > 0 && refsToAnimate[0]) {
-      console.log('[HighlightedText.scrollToHighlight] Scrolling to first ref')
 
       // Reset cycle and scroll to first
       currentHighlightIndex.current = 0;
