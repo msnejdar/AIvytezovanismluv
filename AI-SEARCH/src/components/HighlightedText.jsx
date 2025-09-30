@@ -13,11 +13,8 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
   const currentHighlightIndex = useRef(0); // Track which highlight to scroll to next
   const previousHighlight = useRef(highlight);
 
-  console.log('[HighlightedText] RENDER - text length:', text?.length, 'highlight:', highlight);
-
   // Reset refs BEFORE render if highlight changed (not in useEffect which runs AFTER)
   if (previousHighlight.current !== highlight) {
-    console.log('[HighlightedText] Highlight changed, resetting refs BEFORE render');
     highlightRefs.current = [];
     highlightsByValue.current = new Map();
     currentHighlightIndex.current = 0;
@@ -26,21 +23,16 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
 
   // Scroll to next highlight in cycle
   const scrollToNextHighlight = () => {
-    console.log('[HighlightedText] scrollToNextHighlight - cycling through highlights');
     const allRefs = highlightRefs.current.filter(el => el);
 
     if (allRefs.length === 0) {
-      console.log('[HighlightedText] No highlights to cycle through');
       return;
     }
-
-    console.log('[HighlightedText] Total highlights:', allRefs.length, 'Current index:', currentHighlightIndex.current);
 
     // Get current highlight to scroll to
     const targetRef = allRefs[currentHighlightIndex.current];
 
     if (targetRef) {
-      console.log('[HighlightedText] Scrolling to highlight #', currentHighlightIndex.current + 1, 'of', allRefs.length);
       targetRef.scrollIntoView({
         behavior: 'smooth',
         block: 'center'
@@ -61,17 +53,12 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
 
   // Scroll to first highlight of specified values (called from parent)
   const scrollToHighlight = (valuesToHighlight) => {
-    console.log('[HighlightedText] scrollToHighlight called with:', valuesToHighlight);
-    console.log('[HighlightedText] highlightRefs.current:', highlightRefs.current);
-    console.log('[HighlightedText] highlightsByValue.current:', highlightsByValue.current);
-
     let refsToAnimate = [];
 
     if (valuesToHighlight && Array.isArray(valuesToHighlight)) {
       // Try to find specific values using Map
       valuesToHighlight.forEach(value => {
         const normalizedSearchValue = removeDiacritics(value).toLowerCase();
-        console.log('[HighlightedText] Looking for value:', value, '→ normalized:', normalizedSearchValue);
 
         // Try both original and normalized value as keys
         let refs = highlightsByValue.current.get(value);
@@ -79,7 +66,6 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
           refs = highlightsByValue.current.get(normalizedSearchValue);
         }
 
-        console.log('[HighlightedText] Found refs:', refs);
         if (refs && refs.length > 0) {
           refsToAnimate.push(...refs);
         }
@@ -87,7 +73,6 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
 
       // If no specific refs found, use all highlights
       if (refsToAnimate.length === 0) {
-        console.log('[HighlightedText] No specific refs found, using all highlights');
         refsToAnimate = highlightRefs.current.filter(el => el);
       }
     } else {
@@ -95,10 +80,7 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
       refsToAnimate = highlightRefs.current.filter(el => el);
     }
 
-    console.log('[HighlightedText] Refs to animate:', refsToAnimate);
-
     if (refsToAnimate.length > 0 && refsToAnimate[0]) {
-      console.log('[HighlightedText] Scrolling to first ref');
 
       // Reset cycle and scroll to first
       currentHighlightIndex.current = 0;
@@ -119,8 +101,6 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
 
       // Set next index for cycling
       currentHighlightIndex.current = 1 % refsToAnimate.length;
-    } else {
-      console.log('[HighlightedText] No refs to animate!');
     }
 
     if (onHighlightClick) {
@@ -135,15 +115,12 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
 
   // If no highlight, return plain text
   if (!highlight || !text) {
-    console.log('[HighlightedText] No highlight or no text, returning plain text');
     return (
       <div className="highlighted-text-container" ref={containerRef}>
         {text}
       </div>
     );
   }
-
-  console.log('[HighlightedText] Processing highlights...');
 
   // Normalize highlight to array
   const highlightValues = Array.isArray(highlight) ? highlight : [highlight];
@@ -220,9 +197,6 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
     });
   }
 
-  console.log('[HighlightedText] Built parts:', parts.length, 'parts');
-  console.log('[HighlightedText] Highlight positions found:', highlightPositions.length);
-
   return (
     <div className="highlighted-text-container" ref={containerRef}>
       {parts.map((part, index) => {
@@ -232,14 +206,12 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
               key={index}
               ref={el => {
                 if (el) {
-                  console.log('[HighlightedText] Ref callback for:', part.value, 'refIndex:', part.refIndex);
                   highlightRefs.current[part.refIndex] = el;
                   // Track by value for targeted highlighting
                   if (!highlightsByValue.current.has(part.value)) {
                     highlightsByValue.current.set(part.value, []);
                   }
                   highlightsByValue.current.get(part.value).push(el);
-                  console.log('[HighlightedText] Total refs now:', highlightRefs.current.length);
                 }
               }}
               className="text-highlight"

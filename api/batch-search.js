@@ -14,6 +14,12 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Document is required' });
   }
 
+  // Check API key
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.error('[API] ANTHROPIC_API_KEY is not set');
+    return res.status(500).json({ error: 'API key not configured' });
+  }
+
   console.log(`[API] Batch search: ${queries.length} položek`);
 
   try {
@@ -80,13 +86,13 @@ PRAVIDLA:
       }));
 
       console.log(`[API] Batch results: ${completeResults.length} položek`);
-      res.status(200).json({ results: completeResults });
+      return res.status(200).json({ results: completeResults });
     } else {
       console.error('Claude API error:', data);
-      res.status(500).json({ error: 'Chyba při vyhledávání' });
+      return res.status(500).json({ error: 'Chyba při vyhledávání', details: data.error });
     }
   } catch (error) {
-    console.error('Batch search error:', error);
-    res.status(500).json({ error: 'Chyba při vyhledávání' });
+    console.error('Batch search error:', error.message, error.stack);
+    return res.status(500).json({ error: 'Chyba při vyhledávání', details: error.message });
   }
 }

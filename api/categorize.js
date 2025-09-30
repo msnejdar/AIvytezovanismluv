@@ -10,6 +10,12 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Queries must be an array' });
   }
 
+  // Check API key
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.error('[API] ANTHROPIC_API_KEY is not set');
+    return res.status(500).json({ error: 'API key not configured' });
+  }
+
   console.log(`[API] Kategorizace ${queries.length} položek`);
 
   try {
@@ -53,13 +59,13 @@ PRAVIDLA:
       const text = data.content?.[0]?.text?.trim();
       const categories = JSON.parse(text);
       console.log(`[API] Kategorizováno do ${categories.length} kategorií`);
-      res.status(200).json({ categories });
+      return res.status(200).json({ categories });
     } else {
       console.error('Claude API error:', data);
-      res.status(500).json({ error: 'Chyba při kategorizaci' });
+      return res.status(500).json({ error: 'Chyba při kategorizaci', details: data.error });
     }
   } catch (error) {
-    console.error('Categorization error:', error);
-    res.status(500).json({ error: 'Chyba při kategorizaci' });
+    console.error('Categorization error:', error.message, error.stack);
+    return res.status(500).json({ error: 'Chyba při kategorizaci', details: error.message });
   }
 }
