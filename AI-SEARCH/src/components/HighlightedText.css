@@ -121,9 +121,9 @@
   scroll-behavior: smooth;
 }
 
-/* Custom scrollbar for highlighted container */
+/* Custom scrollbar - Liquid Glass macOS style (visible on hover) */
 .highlighted-text-container::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
 }
 
 .highlighted-text-container::-webkit-scrollbar-track {
@@ -131,10 +131,30 @@
 }
 
 .highlighted-text-container::-webkit-scrollbar-thumb {
-  background: var(--glass-gray-300);
-  border-radius: 4px;
+  background: rgba(0, 0, 0, 0);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.3s ease;
+}
+
+.highlighted-text-container:hover::-webkit-scrollbar-thumb {
+  background: rgba(163, 163, 163, 0.4);
+  background-clip: padding-box;
 }
 
 .highlighted-text-container::-webkit-scrollbar-thumb:hover {
-  background: var(--glass-gray-400);
+  background: rgba(115, 115, 115, 0.6);
+  background-clip: padding-box;
+}
+
+.highlighted-text-container::-webkit-scrollbar-thumb:active {
+  background: rgba(115, 115, 115, 0.8);
+  background-clip: padding-box;
+}
+
+/* Firefox scrollbar styling */
+.highlighted-text-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(163, 163, 163, 0.4) transparent;
 }

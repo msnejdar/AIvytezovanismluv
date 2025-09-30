@@ -498,8 +498,10 @@ body {
   background: var(--glass-white-50);
   border: 1px solid var(--glass-gray-200);
   border-radius: 12px;
-  overflow: hidden;
+  overflow: hidden; /* Keep for border-radius clipping */
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .edit-document-btn {
