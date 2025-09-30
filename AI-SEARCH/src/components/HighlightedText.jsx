@@ -18,20 +18,44 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
 
   // Scroll to first highlight of specified values
   const scrollToHighlight = (valuesToHighlight) => {
+    console.log('[HighlightedText] scrollToHighlight called with:', valuesToHighlight);
+    console.log('[HighlightedText] highlightRefs.current:', highlightRefs.current);
+    console.log('[HighlightedText] highlightsByValue.current:', highlightsByValue.current);
+
     let refsToAnimate = [];
 
     if (valuesToHighlight && Array.isArray(valuesToHighlight)) {
-      // Highlight specific values
+      // Try to find specific values using Map
       valuesToHighlight.forEach(value => {
-        const refs = highlightsByValue.current.get(value) || [];
-        refsToAnimate.push(...refs);
+        const normalizedSearchValue = removeDiacritics(value).toLowerCase();
+        console.log('[HighlightedText] Looking for value:', value, '→ normalized:', normalizedSearchValue);
+
+        // Try both original and normalized value as keys
+        let refs = highlightsByValue.current.get(value);
+        if (!refs || refs.length === 0) {
+          refs = highlightsByValue.current.get(normalizedSearchValue);
+        }
+
+        console.log('[HighlightedText] Found refs:', refs);
+        if (refs && refs.length > 0) {
+          refsToAnimate.push(...refs);
+        }
       });
+
+      // If no specific refs found, use all highlights
+      if (refsToAnimate.length === 0) {
+        console.log('[HighlightedText] No specific refs found, using all highlights');
+        refsToAnimate = highlightRefs.current.filter(el => el);
+      }
     } else {
       // Highlight all
       refsToAnimate = highlightRefs.current.filter(el => el);
     }
 
+    console.log('[HighlightedText] Refs to animate:', refsToAnimate);
+
     if (refsToAnimate.length > 0 && refsToAnimate[0]) {
+      console.log('[HighlightedText] Scrolling to first ref');
       refsToAnimate[0].scrollIntoView({
         behavior: 'smooth',
         block: 'center'
@@ -46,6 +70,8 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
           }, index * 100);
         }
       });
+    } else {
+      console.log('[HighlightedText] No refs to animate!');
     }
 
     if (onHighlightClick) {
