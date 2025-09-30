@@ -11,15 +11,18 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
   const highlightRefs = useRef([]);
   const highlightsByValue = useRef(new Map()); // Map of value -> refs
   const currentHighlightIndex = useRef(0); // Track which highlight to scroll to next
+  const previousHighlight = useRef(highlight);
 
   console.log('[HighlightedText] RENDER - text length:', text?.length, 'highlight:', highlight);
 
-  useEffect(() => {
-    console.log('[HighlightedText] useEffect - resetting refs because highlight changed');
+  // Reset refs BEFORE render if highlight changed (not in useEffect which runs AFTER)
+  if (previousHighlight.current !== highlight) {
+    console.log('[HighlightedText] Highlight changed, resetting refs BEFORE render');
     highlightRefs.current = [];
     highlightsByValue.current = new Map();
-    currentHighlightIndex.current = 0; // Reset cycle when highlight changes
-  }, [highlight]); // Only reset when highlight prop changes, not text
+    currentHighlightIndex.current = 0;
+    previousHighlight.current = highlight;
+  }
 
   // Scroll to next highlight in cycle
   const scrollToNextHighlight = () => {
