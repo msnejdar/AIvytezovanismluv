@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
-import 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 
 /**
  * Comprehensive Export System for Contract Analysis
@@ -333,7 +333,7 @@ export class ExportSystem {
       item.type || ''
     ])
 
-    doc.autoTable({
+    autoTable(doc, {
       head: [['Dotaz', 'Popisek', 'Hodnota', 'Absolutní hodnota', 'Typ']],
       body: tableData,
       startY: 95,
@@ -364,7 +364,7 @@ export class ExportSystem {
       info.avgConfidence.toFixed(3)
     ])
 
-    doc.autoTable({
+    autoTable(doc, {
       head: [['Data Type', 'Count', 'Percentage', 'Avg Confidence']],
       body: typeTableData,
       startY: 30,
@@ -389,7 +389,7 @@ export class ExportSystem {
       ['Total Matches Found', stats.totalMatches]
     ]
 
-    doc.autoTable({
+    autoTable(doc, {
       body: statsData,
       startY: finalY + 10,
       styles: { fontSize: 10 },
