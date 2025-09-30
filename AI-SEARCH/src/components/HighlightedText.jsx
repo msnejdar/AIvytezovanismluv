@@ -1,5 +1,6 @@
 import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import './HighlightedText.css';
+import { removeDiacritics } from '../documentNormalizer.js';
 
 /**
  * Component to display text with highlighted search results
@@ -69,23 +70,26 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
   // Normalize highlight to array
   const highlightValues = Array.isArray(highlight) ? highlight : [highlight];
 
-  // Find all occurrences of all highlight values (case-insensitive)
+  // Find all occurrences of all highlight values (case-insensitive + diacritics-insensitive)
   const parts = [];
   let lastIndex = 0;
-  const lowerText = text.toLowerCase();
+
+  // Normalize text: remove diacritics and lowercase for matching
+  const normalizedText = removeDiacritics(text).toLowerCase();
 
   // Build a map of positions to highlight
   const highlightPositions = [];
   highlightValues.forEach(value => {
-    const lowerValue = value.toLowerCase();
-    let index = lowerText.indexOf(lowerValue);
+    // Normalize value the same way
+    const normalizedValue = removeDiacritics(value).toLowerCase();
+    let index = normalizedText.indexOf(normalizedValue);
     while (index !== -1) {
       highlightPositions.push({
         start: index,
-        end: index + value.length,
+        end: index + value.length, // Use original value length
         value: value
       });
-      index = lowerText.indexOf(lowerValue, index + value.length);
+      index = normalizedText.indexOf(normalizedValue, index + value.length);
     }
   });
 
