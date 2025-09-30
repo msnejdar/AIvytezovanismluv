@@ -533,6 +533,7 @@ body {
 .document-textarea {
   width: 100%;
   height: 100%;
+  max-height: 100%;
   padding: 20px;
   background: var(--glass-white-50);
   border: 1px solid var(--glass-gray-200);
@@ -544,6 +545,7 @@ body {
   resize: none;
   outline: none;
   transition: all 0.2s ease;
+  overflow-y: auto;
 }
 
 .document-textarea::placeholder {
@@ -554,6 +556,38 @@ body {
 .document-textarea:focus {
   background: var(--glass-white-60);
   border-color: var(--glass-gray-300);
+}
+
+/* Scrollbar for textarea - macOS style */
+.document-textarea::-webkit-scrollbar {
+  width: 10px;
+}
+
+.document-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.document-textarea::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.3s ease;
+}
+
+.document-textarea:hover::-webkit-scrollbar-thumb {
+  background: rgba(163, 163, 163, 0.4);
+  background-clip: padding-box;
+}
+
+.document-textarea::-webkit-scrollbar-thumb:hover {
+  background: rgba(115, 115, 115, 0.6);
+  background-clip: padding-box;
+}
+
+.document-textarea::-webkit-scrollbar-thumb:active {
+  background: rgba(115, 115, 115, 0.8);
+  background-clip: padding-box;
 }
 
 .document-stats-overlay {
