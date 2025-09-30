@@ -317,9 +317,7 @@ export class ExportSystem {
     
     const summaryText = [
       `Total extracted records: ${data.length}`,
-      `Average confidence: ${summary.avgConfidence.toFixed(1)}%`,
-      `Most common data type: ${summary.topValueTypes[0]?.[0] || 'N/A'}`,
-      `Confidence range: ${summary.minConfidence.toFixed(1)}% - ${summary.maxConfidence.toFixed(1)}%`
+      `Most common data type: ${summary.topValueTypes[0]?.[0] || 'N/A'}`
     ]
     
     summaryText.forEach((text, index) => {
@@ -357,7 +355,7 @@ export class ExportSystem {
 
   addPDFDataTypesAnalysis(doc, data) {
     const typeAnalysis = this.analyzeDataTypes(data)
-    
+
     doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
     doc.text('Data Types Analysis', 20, 20)
@@ -365,12 +363,11 @@ export class ExportSystem {
     const typeTableData = Object.entries(typeAnalysis).map(([type, info]) => [
       type,
       info.count.toString(),
-      `${((info.count / data.length) * 100).toFixed(1)}%`,
-      info.avgConfidence.toFixed(3)
+      `${((info.count / data.length) * 100).toFixed(1)}%`
     ])
 
     autoTable(doc, {
-      head: [['Data Type', 'Count', 'Percentage', 'Avg Confidence']],
+      head: [['Data Type', 'Count', 'Percentage']],
       body: typeTableData,
       startY: 30,
       styles: { fontSize: 10 },
@@ -389,9 +386,7 @@ export class ExportSystem {
     const statsData = [
       ['Total Records', data.length],
       ['Unique Values', stats.uniqueValues],
-      ['Average Confidence', stats.avgConfidence.toFixed(3)],
-      ['Standard Deviation', stats.stdDeviation.toFixed(3)],
-      ['Total Matches Found', stats.totalMatches]
+      ['Unique Data Types', stats.uniqueTypes]
     ]
 
     autoTable(doc, {
