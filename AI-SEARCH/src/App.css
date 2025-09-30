@@ -270,7 +270,8 @@ body {
   flex-direction: column;
   gap: 20px;
   box-shadow: var(--shadow-lg);
-  overflow: hidden;
+  overflow: hidden; /* Keep for border-radius clipping */
+  min-height: 0; /* Allow flex children to shrink below content size */
 }
 
 .pane-header {
@@ -491,6 +492,7 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* Critical: allows flex child to shrink and enable scrolling */
 }
 
 .document-display {
@@ -502,6 +504,7 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* Critical: allows HighlightedText to scroll */
 }
 
 .edit-document-btn {
