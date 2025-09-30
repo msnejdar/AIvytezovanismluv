@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     const result = await callClaudeAPI(query, document);
 
     if (result.success) {
-      console.log(`[Vercel API] Odpověď: "${result.answer.substring(0, 100)}..."`);
+      console.log(`[Vercel API] Odpověď:`, result.answer);
       return res.status(200).json({
         answer: result.answer,
         confidence: 0.95
