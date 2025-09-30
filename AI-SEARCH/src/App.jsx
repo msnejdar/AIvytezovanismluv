@@ -343,7 +343,7 @@ const normalizeComparisonValue = (value = '', label) => {
   }
 
   if (/cena|částka|zapla[tť]|úhrada|poplatek|hodnota|výše|úrok|rpsn|rate|%|kč|czk|eur|€/i.test(label || '') || /%/.test(lower)) {
-    const digits = lower.replace(/[^ -]/g, '') // remove diacritics already in doc
+    const digits = lower.replace(/[^ 0-9]/g, '') // remove diacritics already in doc
     const hasPercent = /%/.test(lower)
     const numeric = lower.replace(/[^0-9]/g, '')
     return hasPercent ? `${numeric}%` : numeric
@@ -1536,274 +1536,285 @@ function App() {
 
   console.log('[Render] Showing main app interface')
   return (
-    <div className="app-container">
-      <div className="search-panel">
+    <div className="app-shell">
+      <aside className="panel search-panel glass-panel">
         <div className="search-header">
           <div className="porsche-badge">
             <div className="badge-text">Legal Document Analyzer</div>
             <div className="badge-subtitle">Contract Analysis • Powered by Claude AI</div>
           </div>
         </div>
-        
-        <div className="search-input-container">
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Vyhledávat v smlouvě: osobní údaje, částky, termíny, strany..."
-            value={searchQuery}
-            onChange={(e) => {
-              const newQuery = e.target.value
-              setSearchQuery(newQuery)
-              
-              // Real-time search with debouncing for local queries
-              if (newQuery.startsWith('local:') && documentText) {
-                globalDebouncer.debounce('realtime-search', () => {
-                  performIntelligentSearch()
-                }, 500)
-              }
-            }}
-            onKeyPress={handleKeyPress}
-          />
-          <button 
-            className="search-button"
-            onClick={handleSearch}
-            disabled={isSearching || !searchQuery.trim() || !documentText.trim()}
-          >
-            {isSearching ? (
-              <div className="loading-spinner"></div>
-            ) : (
-              <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.35-4.35"/>
-              </svg>
-            )}
-          </button>
-          <select
-            className="search-mode-select"
-            value={searchMode}
-            onChange={(e) => setSearchMode(e.target.value)}
-            style={{ marginLeft: '8px', padding: '0.5rem', fontSize: '0.8rem' }}
-          >
-            <option value="contract">🏛️ Smlouvy</option>
-            <option value="intelligent">🧠 Inteligentní</option>
-            <option value="fuzzy">🔍 Fuzzy</option>
-            <option value="semantic">💡 Sémantické</option>
-            <option value="simple">📄 Jednoduché</option>
-          </select>
-          <button 
-            className="test-button"
-            onClick={performIntelligentSearch}
-            disabled={!searchQuery.trim() || !documentText.trim()}
-            style={{ marginLeft: '8px', padding: '0.5rem', fontSize: '0.8rem' }}
-          >
-            Vyhledat
-          </button>
-          {highlightRanges.length > 0 && (
-            <button 
-              className="clear-button"
-              onClick={() => {
-                setHighlightRanges([])
-                setActiveResultId(null)
-                setSearchResults([])
-              }}
-              style={{ marginLeft: '8px', padding: '0.5rem', fontSize: '0.8rem', background: '#ff6b6b' }}
-            >
-              Clear
-            </button>
-          )}
-          <button 
-            className="filters-toggle"
-            onClick={() => setShowFilters(!showFilters)}
-            style={{ marginLeft: '8px', padding: '0.5rem', fontSize: '0.8rem' }}
-          >
-            {showFilters ? 'Hide' : 'Show'} Filters
-          </button>
-        </div>
-        
-        {/* Advanced Search Filters */}
-        {renderSearchFilters()}
-        
-        {/* Performance stats */}
-        {performanceStats && (
-          <div className="performance-stats" style={{ margin: '0.5rem 0', fontSize: '0.75rem', color: '#666' }}>
-            Vyhledávání dokončeno za {performanceStats.duration.toFixed(0)}ms
-          </div>
-        )}
-        
-        {/* Quick test examples */}
-        <div className="quick-tests" style={{ margin: '1rem 0', fontSize: '0.75rem' }}>
-          <div style={{ marginBottom: '0.5rem', color: '#888' }}>Rychlé testy (použijte prefix 'local:'):</div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button 
-              onClick={() => {
-                const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
-                setDocumentText(testText)
-                setSearchQuery('local:rodné číslo')
-                setSearchMode('intelligent')
-              }}
-              style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
-            >
-              RNČ test
-            </button>
-            <button 
-              onClick={() => {
-                const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
-                setDocumentText(testText)
-                setSearchQuery('local:cena')
-                setSearchMode('semantic')
-              }}
-              style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
-            >
-              Částka test
-            </button>
-            <button 
-              onClick={() => {
-                const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
-                setDocumentText(testText)
-                setSearchQuery('local:Jan')
-                setSearchMode('fuzzy')
-              }}
-              style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#4a9eff', color: 'white', border: 'none', borderRadius: '3px' }}
-            >
-              Jméno test
-            </button>
-            <button 
-              onClick={() => {
-                setDocumentText('Tomáš Novotný - 680412/2156, Petra Novotná - 705523/3298, Martin Procházka - 850915/4789')
-                setSearchQuery('local:osoba')
-                setSearchMode('intelligent')
-                performIntelligentSearch()
-              }}
-              style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#ff6b6b', color: 'white', border: 'none', borderRadius: '3px' }}
-            >
-              Multi-person test
-            </button>
-          </div>
-        </div>
-        
-        {searchWarnings.length > 0 && (
-          <div className="warnings-section">
-            <div className="warnings-header">
-              <h3 className="warnings-title">Varování</h3>
-            </div>
-            <div className="warnings-container">
-              {searchWarnings.map((warning, index) => (
-                <div key={index} className="warning-item">
-                  {warning}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {searchResults.length > 0 && (
-          <div className="results-section">
-            <div className="results-header">
-              <h3 className="results-title">Výsledky</h3>
-              {searchResults.some(r => (r.matches && r.matches.length > 0)) && (
-                <button 
-                  className="show-all-button"
+        <div className="panel-scroll">
+          <div className="search-input-container">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Vyhledávat v smlouvě: osobní údaje, částky, termíny, strany..."
+              value={searchQuery}
+              onChange={(e) => {
+                const newQuery = e.target.value
+                setSearchQuery(newQuery)
+
+                if (newQuery.startsWith('local:') && documentText) {
+                  globalDebouncer.debounce('realtime-search', () => {
+                    performIntelligentSearch()
+                  }, 500)
+                }
+              }}
+              onKeyPress={handleKeyPress}
+            />
+            <button
+              className="search-button"
+              onClick={handleSearch}
+              disabled={isSearching || !searchQuery.trim() || !documentText.trim()}
+            >
+              {isSearching ? (
+                <div className="loading-spinner"></div>
+              ) : (
+                <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              )}
+            </button>
+            <select
+              className="search-mode-select"
+              value={searchMode}
+              onChange={(e) => setSearchMode(e.target.value)}
+            >
+              <option value="contract">🏛️ Smlouvy</option>
+              <option value="intelligent">🧠 Inteligentní</option>
+              <option value="fuzzy">🔍 Fuzzy</option>
+              <option value="semantic">💡 Sémantické</option>
+              <option value="simple">📄 Jednoduché</option>
+            </select>
+            <button
+              className="test-button"
+              onClick={performIntelligentSearch}
+              disabled={!searchQuery.trim() || !documentText.trim()}
+            >
+              Vyhledat
+            </button>
+            {highlightRanges.length > 0 && (
+              <button
+                className="clear-button"
+                onClick={() => {
+                  setHighlightRanges([])
+                  setActiveResultId(null)
+                  setSearchResults([])
+                }}
+              >
+                Clear
+              </button>
+            )}
+            <button
+              className="filters-toggle"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              {showFilters ? 'Hide' : 'Show'} Filters
+            </button>
+          </div>
+
+          {renderSearchFilters()}
+
+          <div className="quick-tests">
+            <h3 className="quick-tests-title">Rychlé testy (použijte prefix „local:“)</h3>
+            <div className="quick-tests-grid">
+              <button
+                className="quick-test-button"
+                onClick={() => {
+                  const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
+                  setDocumentText(testText)
+                  setSearchQuery('local:rodné číslo')
+                  setSearchMode('intelligent')
+                }}
+              >
+                RNČ test
+              </button>
+              <button
+                className="quick-test-button"
+                onClick={() => {
+                  const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
+                  setDocumentText(testText)
+                  setSearchQuery('local:cena')
+                  setSearchMode('semantic')
+                }}
+              >
+                Částka test
+              </button>
+              <button
+                className="quick-test-button"
+                onClick={() => {
+                  const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
+                  setDocumentText(testText)
+                  setSearchQuery('local:Jan')
+                  setSearchMode('fuzzy')
+                }}
+              >
+                Jméno test
+              </button>
+              <button
+                className="quick-test-button"
+                onClick={() => {
+                  setDocumentText('Tomáš Novotný - 680412/2156, Petra Novotná - 705523/3298, Martin Procházka - 850915/4789')
+                  setSearchQuery('local:osoba')
+                  setSearchMode('intelligent')
+                  performIntelligentSearch()
+                }}
+              >
+                Multi-person test
+              </button>
+            </div>
+          </div>
+
+          <div className="history-section">
+            <div className="history-header">
+              <h3 className="history-title">Historie vyhledávání</h3>
+              {searchHistory.length > 0 && (
+                <button
+                  className="clear-history-button"
                   onClick={() => {
-                    const allMatches = searchResults.flatMap(result => result.matches || [])
-                    setHighlightRanges(allMatches)
-                    setActiveResultId(null)
+                    setSearchHistory([])
+                    localStorage.removeItem('searchHistory')
                   }}
+                  title="Smazat historii"
                 >
-                  Zobrazit vše
+                  <svg className="clear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="3,6 5,6 21,6"></polyline>
+                    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
                 </button>
               )}
             </div>
-            <div className="results-container">
-              {searchResults.map(result => (
-                <div 
-                  key={result.id} 
-                  className={`result-item ${result.error ? 'result-error' : ''} ${(result.matches && result.matches.length > 0) ? 'clickable' : ''}`}
-                  onClick={() => (result.matches && result.matches.length > 0) && handleResultClick(result)}
-                >
-                  {result.label && (
-                    <div className="result-label">
-                      {result.label}
-                      {result.type && (
-                        <span className={`status-indicator ${result.type}`} style={{marginLeft: '0.5rem', padding: '0.25rem 0.5rem'}}>
-                          {result.type}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  <div className={result.label ? 'result-value' : 'result-content'}>
-                    {result.value ?? result.content}
+            <div className="history-list">
+              {searchHistory.length === 0 ? (
+                <div className="history-empty">Zatím žádná historie</div>
+              ) : (
+                searchHistory.map(item => (
+                  <div
+                    key={item.id}
+                    className="history-item"
+                    onClick={() => handleHistoryClick(item.query)}
+                  >
+                    <span className="history-query">{item.query}</span>
+                    <span className="history-time">
+                      {new Date(item.timestamp).toLocaleTimeString('cs-CZ', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
                   </div>
-                  {result.confidence && (
-                    <div style={{marginTop: '0.75rem'}}>
-                      {renderConfidenceMeter(result.confidence, 'Přesnost')}
-                    </div>
-                  )}
-                  {result.context && (
-                    <div style={{marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--legal-text-muted)', fontStyle: 'italic'}}>
-                      Kontext: {result.context}
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
-        )}
-
-        <div className="history-section">
-          <div className="history-header">
-            <h3 className="history-title">Historie vyhledávání</h3>
-            {searchHistory.length > 0 && (
-              <button 
-                className="clear-history-button"
-                onClick={() => {
-                  setSearchHistory([])
-                  localStorage.removeItem('searchHistory')
-                }}
-                title="Smazat historii"
-              >
-                <svg className="clear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="3,6 5,6 21,6"></polyline>
-                  <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
-                  <line x1="10" y1="11" x2="10" y2="17"></line>
-                  <line x1="14" y1="11" x2="14" y2="17"></line>
-                </svg>
-              </button>
-            )}
-          </div>
-          <div className="history-list">
-            {searchHistory.length === 0 ? (
-              <div className="history-empty">Zatím žádná historie</div>
-            ) : (
-              searchHistory.map(item => (
-                <div 
-                  key={item.id} 
-                  className="history-item"
-                  onClick={() => handleHistoryClick(item.query)}
-                >
-                  <span className="history-query">{item.query}</span>
-                  <span className="history-time">
-                    {new Date(item.timestamp).toLocaleTimeString('cs-CZ', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
         </div>
-      </div>
+      </aside>
 
-      <div className="content-panel">
-        <div className="content-header">
-          <h2 className="content-title">Smlouva / Právní dokument</h2>
-          <div className="content-stats">
-            {highlightRanges.length > 0 && (
+      <main className="panel results-panel glass-panel">
+        <div className="panel-header">
+          <div>
+            <h2 className="panel-title">Výsledky vyhledávání</h2>
+            <p className="panel-subtitle">Futuristická analýza klíčových informací</p>
+          </div>
+          {performanceStats && (
+            <div className="panel-metric">
+              <span className="metric-label">Doba vyhledávání</span>
+              <span className="metric-value">{performanceStats.duration.toFixed(0)} ms</span>
+            </div>
+          )}
+        </div>
+
+        <div className="panel-scroll">
+          {searchWarnings.length > 0 && (
+            <div className="warnings-section">
+              <div className="warnings-header">
+                <h3 className="warnings-title">Varování</h3>
+              </div>
+              <div className="warnings-container">
+                {searchWarnings.map((warning, index) => (
+                  <div key={index} className="warning-item">
+                    {warning}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {searchResults.length > 0 ? (
+            <div className="results-section">
+              <div className="results-header">
+                <h3 className="results-title">Výsledky</h3>
+                {searchResults.some(r => (r.matches && r.matches.length > 0)) && (
+                  <button
+                    className="show-all-button"
+                    onClick={() => {
+                      const allMatches = searchResults.flatMap(result => result.matches || [])
+                      setHighlightRanges(allMatches)
+                      setActiveResultId(null)
+                    }}
+                  >
+                    Zobrazit vše
+                  </button>
+                )}
+              </div>
+              <div className="results-container">
+                {searchResults.map(result => (
+                  <div
+                    key={result.id}
+                    className={`result-item ${result.error ? 'result-error' : ''} ${(result.matches && result.matches.length > 0) ? 'clickable' : ''}`}
+                    onClick={() => (result.matches && result.matches.length > 0) && handleResultClick(result)}
+                  >
+                    {result.label && (
+                      <div className="result-label">
+                        {result.label}
+                        {result.type && (
+                          <span className={`status-indicator ${result.type}`} style={{ marginLeft: '0.5rem', padding: '0.25rem 0.5rem' }}>
+                            {result.type}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <div className={result.label ? 'result-value' : 'result-content'}>
+                      {result.value ?? result.content}
+                    </div>
+                    {result.confidence && (
+                      <div style={{ marginTop: '0.75rem' }}>
+                        {renderConfidenceMeter(result.confidence, 'Přesnost')}
+                      </div>
+                    )}
+                    {result.context && (
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--legal-text-muted)', fontStyle: 'italic' }}>
+                        Kontext: {result.context}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="results-empty">
+              <h3>Žádné výsledky</h3>
+              <p>Zadejte dotaz vlevo a vložte text dokumentu, abychom mohli vyhledávat.</p>
+            </div>
+          )}
+        </div>
+      </main>
+
+      <section className="panel document-panel glass-panel">
+        <div className="panel-header">
+          <div>
+            <h2 className="panel-title">Smlouva / Právní dokument</h2>
+            <p className="panel-subtitle">Práce s textem v reálném čase</p>
+          </div>
+          <div className="panel-metric-group">
+            {highlightRanges.length > 0 ? (
               <>
-                <span style={{ fontSize: '0.8rem', color: '#4a9eff', marginRight: '1rem' }}>
-                  {highlightRanges.length} zvýraznění
-                </span>
-                <button 
+                <span className="stat-chip">{highlightRanges.length} zvýraznění</span>
+                <button
                   className="edit-button"
                   onClick={() => {
                     setHighlightRanges([])
@@ -1814,16 +1825,13 @@ function App() {
                   Upravit text
                 </button>
               </>
-            )}
-            {highlightRanges.length === 0 && documentText && (
-              <span style={{ fontSize: '0.8rem', color: '#888' }}>
-                {documentText.length} znaků
-              </span>
+            ) : (
+              documentText && <span className="stat-chip muted">{documentText.length} znaků</span>
             )}
           </div>
         </div>
 
-        <div className="document-input-container">
+        <div className="document-body">
           <textarea
             className="document-input"
             placeholder="Vložte text smlouvy nebo právního dokumentu pro analýzu a vyhledávání klíčových informací..."
@@ -1835,7 +1843,7 @@ function App() {
             <div className="document-overlay">Připravuji dokument…</div>
           )}
           {highlightRanges.length > 0 && (
-            <div 
+            <div
               className="document-highlighted"
               ref={highlightedDocumentRef}
               dangerouslySetInnerHTML={{
@@ -1849,27 +1857,11 @@ function App() {
             />
           )}
         </div>
-      </div>
+      </section>
 
-      {/* Theme Toggle Button */}
       <button className="theme-toggle" onClick={toggleTheme} title="Toggle Theme">
         {theme === 'dark' ? '☀️' : '🌙'}
       </button>
-
-      {/* Performance Analytics */}
-      {performanceStats && (
-        <div className="data-viz-container" style={{position: 'fixed', bottom: '2rem', right: '5rem', width: '300px', zIndex: '999'}}>
-          <div className="data-viz-header">
-            <h3 className="data-viz-title">Performance</h3>
-          </div>
-          <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-            {renderConfidenceMeter(Math.min(performanceStats.duration / 1000, 1), 'Speed')}
-            <div style={{fontSize: '0.75rem', color: 'var(--legal-text-muted)'}}>
-              Search completed in {performanceStats.duration.toFixed(0)}ms
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
