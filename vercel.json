@@ -13,11 +13,6 @@
       "destination": "/index.html"
     }
   ],
-  "functions": {
-    "AI-SEARCH/api/search.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "headers": [
     {
       "source": "/api/(.*)",
