@@ -23,6 +23,12 @@ function AppMain() {
   const [showTable, setShowTable] = useState(false) // Show/hide table
   const [highlightText, setHighlightText] = useState(null) // Text to highlight in document
 
+  // Batch search state
+  const [showBatchModal, setShowBatchModal] = useState(false)
+  const [batchQueries, setBatchQueries] = useState([]) // Categorized queries
+  const [selectedQueries, setSelectedQueries] = useState(new Set())
+  const [batchProgress, setBatchProgress] = useState(null) // {current, total, currentQuery}
+
   const fileInputRef = useRef(null)
   const highlightedTextRef = useRef(null)
 
@@ -67,9 +73,55 @@ function AppMain() {
     }
   }
 
+  const categorizeQueries = useCallback(async (queries) => {
+    try {
+      const response = await fetch('http://localhost:3001/api/categorize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ queries })
+      })
+
+      if (!response.ok) throw new Error('Categorization failed')
+
+      const data = await response.json()
+      return data.categories // [{category: "Identifikační údaje", items: ["Rodné číslo", ...]}, ...]
+    } catch (error) {
+      console.error('Categorization error:', error)
+      // Fallback: všechny do kategorie "Ostatní"
+      return [{ category: 'Ostatní', items: queries }]
+    }
+  }, [])
+
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim() || !documentText.trim()) return
 
+    // Detect multi-line search (>5 lines)
+    const lines = searchQuery.split('\n').map(line => line.trim()).filter(line => line.length > 0)
+
+    if (lines.length > 5) {
+      // Batch search mode
+      setIsSearching(true)
+      try {
+        const categorized = await categorizeQueries(lines)
+        setBatchQueries(categorized)
+
+        // Pre-select all queries
+        const allQueries = new Set()
+        categorized.forEach(cat => {
+          cat.items.forEach(item => allQueries.add(item))
+        })
+        setSelectedQueries(allQueries)
+
+        setShowBatchModal(true)
+      } catch (error) {
+        setError('Chyba při kategorizaci dotazů')
+      } finally {
+        setIsSearching(false)
+      }
+      return
+    }
+
+    // Normal single search
     setIsSearching(true)
     setSearchAnswer(null)
     setError('')
@@ -105,7 +157,51 @@ function AppMain() {
     } finally {
       setIsSearching(false)
     }
-  }, [searchQuery, documentText])
+  }, [searchQuery, documentText, categorizeQueries])
+
+  const handleBatchSearch = useCallback(async () => {
+    const selectedList = Array.from(selectedQueries)
+    if (selectedList.length === 0) {
+      setError('Nevybrali jste žádné položky')
+      return
+    }
+
+    setShowBatchModal(false)
+    setIsSearching(true)
+    setBatchProgress({ current: 0, total: selectedList.length, currentQuery: '' })
+
+    const results = []
+
+    for (let i = 0; i < selectedList.length; i++) {
+      const query = selectedList[i]
+      setBatchProgress({ current: i + 1, total: selectedList.length, currentQuery: query })
+
+      try {
+        const result = await aiSearch(documentText, query)
+
+        if (result.success) {
+          results.push({
+            query,
+            answer: result.answer,
+            timestamp: new Date().toISOString(),
+            confidence: result.confidence
+          })
+        }
+
+        // Pause between requests to avoid rate limiting
+        if (i < selectedList.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 300))
+        }
+      } catch (error) {
+        console.error(`Failed to search: ${query}`, error)
+      }
+    }
+
+    setSearchHistory(prev => [...results, ...prev])
+    setBatchProgress(null)
+    setIsSearching(false)
+    setShowTable(true) // Auto-show table
+  }, [selectedQueries, documentText])
 
   const handleExport = async (format, selectedData) => {
     try {
@@ -214,11 +310,121 @@ function AppMain() {
       {!showTable ? (
         <div className="dual-pane-container">
           <div className="left-pane">
-            <div className="pane-header">
-              <h2 className="pane-title">Vyhledávání</h2>
-            </div>
+            {showBatchModal ? (
+              // Batch search modal
+              <div className="batch-modal">
+                <div className="batch-header">
+                  <h2 className="pane-title">Detekováno {batchQueries.reduce((sum, cat) => sum + cat.items.length, 0)} položek</h2>
+                  <button
+                    className="batch-close-btn"
+                    onClick={() => setShowBatchModal(false)}
+                    title="Zavřít"
+                  >×</button>
+                </div>
 
-            <div className="search-input-group">
+                <div className="batch-controls">
+                  <button
+                    className="batch-select-all-btn"
+                    onClick={() => {
+                      const allQueries = new Set()
+                      batchQueries.forEach(cat => cat.items.forEach(item => allQueries.add(item)))
+                      setSelectedQueries(allQueries)
+                    }}
+                  >
+                    ✓ Vybrat vše
+                  </button>
+                  <button
+                    className="batch-search-btn"
+                    onClick={handleBatchSearch}
+                    disabled={selectedQueries.size === 0}
+                  >
+                    Hledat vybrané ({selectedQueries.size})
+                  </button>
+                </div>
+
+                <div className="batch-categories">
+                  {batchQueries.map((category, catIndex) => (
+                    <div key={catIndex} className="batch-category">
+                      <div className="batch-category-header">
+                        <input
+                          type="checkbox"
+                          checked={category.items.every(item => selectedQueries.has(item))}
+                          onChange={(e) => {
+                            const newSelected = new Set(selectedQueries)
+                            if (e.target.checked) {
+                              category.items.forEach(item => newSelected.add(item))
+                            } else {
+                              category.items.forEach(item => newSelected.delete(item))
+                            }
+                            setSelectedQueries(newSelected)
+                          }}
+                        />
+                        <span className="batch-category-name">
+                          {category.category} ({category.items.length})
+                        </span>
+                      </div>
+                      <div className="batch-category-items">
+                        {category.items.map((item, itemIndex) => (
+                          <div key={itemIndex} className="batch-item">
+                            <input
+                              type="checkbox"
+                              checked={selectedQueries.has(item)}
+                              onChange={(e) => {
+                                const newSelected = new Set(selectedQueries)
+                                if (e.target.checked) {
+                                  newSelected.add(item)
+                                } else {
+                                  newSelected.delete(item)
+                                }
+                                setSelectedQueries(newSelected)
+                              }}
+                            />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : batchProgress ? (
+              // Progress view
+              <div className="batch-progress-view">
+                <div className="pane-header">
+                  <h2 className="pane-title">Hledám...</h2>
+                </div>
+                <div className="batch-progress-content">
+                  <div className="progress-bar-container">
+                    <div
+                      className="progress-bar-fill"
+                      style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
+                    />
+                  </div>
+                  <div className="progress-text">
+                    {batchProgress.current}/{batchProgress.total}
+                  </div>
+                  <div className="progress-current-query">
+                    Aktuálně: "{batchProgress.currentQuery}"
+                  </div>
+                  <button
+                    className="batch-cancel-btn"
+                    onClick={() => {
+                      setIsSearching(false)
+                      setBatchProgress(null)
+                    }}
+                  >
+                    Zrušit hledání
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // Normal search view
+              <>
+                <div className="pane-header">
+                  <h2 className="pane-title">Vyhledávání</h2>
+                </div>
+
+                <div className="search-input-group">
               <input
                 type="text"
                 placeholder="Co chcete vyhledat?"
@@ -302,20 +508,22 @@ function AppMain() {
               </div>
             )}
 
-            {/* Show table button */}
-            {searchHistory.length > 0 && (
-              <button
-                className="show-table-btn"
-                onClick={() => setShowTable(true)}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="3" width="7" height="7" stroke="currentColor" strokeWidth="2" rx="1"/>
-                  <rect x="14" y="3" width="7" height="7" stroke="currentColor" strokeWidth="2" rx="1"/>
-                  <rect x="3" y="14" width="7" height="7" stroke="currentColor" strokeWidth="2" rx="1"/>
-                  <rect x="14" y="14" width="7" height="7" stroke="currentColor" strokeWidth="2" rx="1"/>
-                </svg>
-                Zobrazit tabulku ({searchHistory.length})
-              </button>
+                {/* Show table button */}
+                {searchHistory.length > 0 && (
+                  <button
+                    className="show-table-btn"
+                    onClick={() => setShowTable(true)}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="3" width="7" height="7" stroke="currentColor" strokeWidth="2" rx="1"/>
+                      <rect x="14" y="3" width="7" height="7" stroke="currentColor" strokeWidth="2" rx="1"/>
+                      <rect x="3" y="14" width="7" height="7" stroke="currentColor" strokeWidth="2" rx="1"/>
+                      <rect x="14" y="14" width="7" height="7" stroke="currentColor" strokeWidth="2" rx="1"/>
+                    </svg>
+                    Zobrazit tabulku ({searchHistory.length})
+                  </button>
+                )}
+              </>
             )}
           </div>
 
