@@ -143,12 +143,7 @@ export class ExportSystem {
    * CSV Helper Methods
    */
   getCSVHeaders(sampleItem) {
-    const baseHeaders = ['Label', 'Value', 'Type', 'Confidence', 'Context', 'Position', 'Match Count']
-    
-    if (sampleItem.extractedAt) baseHeaders.push('Extracted At')
-    if (sampleItem.searchQuery) baseHeaders.push('Search Query')
-    
-    return baseHeaders
+    return ['Dotaz', 'Popisek', 'Hodnota', 'Absolutní hodnota', 'Typ']
   }
 
   formatRowForCSV(item, headers) {
@@ -163,15 +158,11 @@ export class ExportSystem {
 
     return headers.map(header => {
       switch (header) {
-        case 'Label': return escapeCSV(item.label)
-        case 'Value': return escapeCSV(item.value)
-        case 'Type': return escapeCSV(item.type)
-        case 'Confidence': return item.confidence || 0
-        case 'Context': return escapeCSV(item.context)
-        case 'Position': return item.startPosition || 0
-        case 'Match Count': return item.matchCount || 0
-        case 'Extracted At': return item.extractedAt || new Date().toISOString()
-        case 'Search Query': return escapeCSV(item.searchQuery)
+        case 'Dotaz': return escapeCSV(item.query)
+        case 'Popisek': return escapeCSV(item.label)
+        case 'Hodnota': return escapeCSV(item.value)
+        case 'Absolutní hodnota': return escapeCSV(item.absoluteValue)
+        case 'Typ': return escapeCSV(item.type)
         default: return ''
       }
     })
@@ -181,17 +172,14 @@ export class ExportSystem {
    * Excel Helper Methods
    */
   createExcelResultsSheet(data) {
-    const headers = ['Label', 'Value', 'Type', 'Confidence', 'Context', 'Position', 'Match Count', 'Extracted At']
-    
+    const headers = ['Dotaz', 'Popisek', 'Hodnota', 'Absolutní hodnota', 'Typ']
+
     const rows = data.map(item => [
+      item.query || '',
       item.label || '',
       item.value || '',
-      item.type || '',
-      item.confidence || 0,
-      item.context || '',
-      item.startPosition || 0,
-      item.matchCount || 0,
-      item.extractedAt || new Date().toISOString()
+      item.absoluteValue || '',
+      item.type || ''
     ])
 
     const wsData = [headers, ...rows]
@@ -199,14 +187,11 @@ export class ExportSystem {
 
     // Set column widths
     worksheet['!cols'] = [
-      { width: 15 }, // Label
-      { width: 30 }, // Value
-      { width: 12 }, // Type
-      { width: 10 }, // Confidence
-      { width: 40 }, // Context
-      { width: 8 },  // Position
-      { width: 10 }, // Match Count
-      { width: 20 }  // Extracted At
+      { width: 25 }, // Dotaz
+      { width: 20 }, // Popisek
+      { width: 20 }, // Hodnota
+      { width: 20 }, // Absolutní hodnota
+      { width: 12 }  // Typ
     ]
 
     // Apply styles to header row
@@ -341,25 +326,25 @@ export class ExportSystem {
 
   addPDFMainTable(doc, data) {
     const tableData = data.map(item => [
-      item.label || '',
-      (item.value || '').substring(0, 30) + (item.value?.length > 30 ? '...' : ''),
-      item.type || '',
-      (item.confidence * 100).toFixed(1) + '%',
-      (item.context || '').substring(0, 40) + (item.context?.length > 40 ? '...' : '')
+      (item.query || '').substring(0, 25) + (item.query?.length > 25 ? '...' : ''),
+      (item.label || '').substring(0, 20) + (item.label?.length > 20 ? '...' : ''),
+      (item.value || '').substring(0, 20) + (item.value?.length > 20 ? '...' : ''),
+      item.absoluteValue || '',
+      item.type || ''
     ])
 
     doc.autoTable({
-      head: [['Label', 'Value', 'Type', 'Confidence', 'Context']],
+      head: [['Dotaz', 'Popisek', 'Hodnota', 'Absolutní hodnota', 'Typ']],
       body: tableData,
       startY: 95,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [200, 200, 200] },
       columnStyles: {
-        0: { cellWidth: 30 },
-        1: { cellWidth: 50 },
-        2: { cellWidth: 25 },
-        3: { cellWidth: 20 },
-        4: { cellWidth: 60 }
+        0: { cellWidth: 45 },
+        1: { cellWidth: 35 },
+        2: { cellWidth: 35 },
+        3: { cellWidth: 35 },
+        4: { cellWidth: 20 }
       },
       margin: { left: 20, right: 20 }
     })

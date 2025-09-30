@@ -109,11 +109,19 @@ function AppMain() {
 
   const handleExport = async (format, selectedData) => {
     try {
-      // Convert history to table format
-      const dataForExport = selectedData || searchHistory.map(item => ({
-        label: item.query,
-        value: item.answer,
-        confidence: item.confidence
+      // Transform table data for export
+      // selectedData is array from TableView with: {query, label, value, type, absoluteValue}
+      const dataForExport = selectedData.map(row => ({
+        query: row.query || '',
+        label: row.label || '',
+        value: row.value || '',
+        type: row.type || '',
+        absoluteValue: row.absoluteValue || '',
+        confidence: 0.95,
+        context: '',
+        startPosition: 0,
+        matchCount: 1,
+        extractedAt: new Date().toISOString()
       }))
 
       await exportSystem.exportData(format, dataForExport, {
