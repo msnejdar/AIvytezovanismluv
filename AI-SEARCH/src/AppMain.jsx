@@ -102,26 +102,47 @@ function AppMain() {
 
   if (!isAuthenticated) {
     return (
-      <div className="app">
-        <div className="auth-container">
-          <div className="auth-panel">
-            <h1>AI Intelligence Search</h1>
-            <p>Profesionální nástroj pro inteligentní vyhledávání v dokumentech</p>
-            <form onSubmit={handleLogin}>
-              <div className="input-group">
-                <label htmlFor="password">Heslo</label>
+      <div className="auth-app">
+        <div className="auth-glass-container">
+          <div className="auth-glass-panel">
+            <div className="auth-brand">
+              <div className="auth-logo">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                  <path d="M24 4L44 14V34L24 44L4 34V14L24 4Z" stroke="url(#grad1)" strokeWidth="1.5" fill="none" opacity="0.4"/>
+                  <circle cx="24" cy="24" r="8" fill="url(#grad2)" opacity="0.6"/>
+                  <defs>
+                    <linearGradient id="grad1" x1="4" y1="4" x2="44" y2="44">
+                      <stop offset="0%" stopColor="#94a3b8" />
+                      <stop offset="100%" stopColor="#475569" />
+                    </linearGradient>
+                    <linearGradient id="grad2" x1="16" y1="16" x2="32" y2="32">
+                      <stop offset="0%" stopColor="#e2e8f0" />
+                      <stop offset="100%" stopColor="#94a3b8" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+              <h1 className="auth-title">AI Intelligence Search</h1>
+            </div>
+            <form onSubmit={handleLogin} className="auth-form">
+              <div className="auth-input-wrapper">
                 <input
                   type="password"
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Zadejte heslo"
+                  className="auth-input"
                   required
+                  autoFocus
                 />
               </div>
-              {error && <div className="error-message">{error}</div>}
-              <button type="submit" className="login-btn">
-                Přihlásit se
+              {error && <div className="auth-error">{error}</div>}
+              <button type="submit" className="auth-btn">
+                <span>Přihlásit se</span>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M4 10h12m-5-5l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
             </form>
           </div>
@@ -131,43 +152,102 @@ function AppMain() {
   }
 
   return (
-    <div className="app">
-      <div className="header">
-        <h1>AI Intelligence Search</h1>
-        <div className="header-actions">
-          <div className="view-toggle">
-            <button 
-              className={`toggle-btn ${activeView === 'search' ? 'active' : ''}`}
-              onClick={() => setActiveView('search')}
-            >
-              Vyhledávání
-            </button>
-            <button 
-              className={`toggle-btn ${activeView === 'table' ? 'active' : ''}`}
-              onClick={() => setActiveView('table')}
-            >
-              Tabulka ({searchResults.length})
-            </button>
-          </div>
-          <button onClick={handleLogout} className="logout-btn">
-            Odhlásit se
-          </button>
-        </div>
-      </div>
-      
+    <div className="main-app">
+      <button onClick={handleLogout} className="logout-glass-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4m7 14l5-5-5-5m5 5H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
       {error && (
-        <div className="error-banner">
-          {error}
-          <button onClick={() => setError('')} className="error-close">×</button>
+        <div className="error-toast">
+          <span>{error}</span>
+          <button onClick={() => setError('')}>×</button>
         </div>
       )}
 
       {activeView === 'search' ? (
-        <div className="main-container">
-          <div className="search-panel">
-            <h2>Vyhledávání</h2>
-            
-            <div className="file-upload-section">
+        <div className="dual-pane-container">
+          <div className="left-pane">
+            <div className="pane-header">
+              <h2 className="pane-title">Vyhledávání</h2>
+            </div>
+
+            <div className="search-input-group">
+              <input
+                type="text"
+                placeholder="Co chcete vyhledat?"
+                className="main-search-input"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              />
+              <button
+                className="main-search-btn"
+                onClick={handleSearch}
+                disabled={isSearching || !searchQuery.trim() || !documentText.trim()}
+              >
+                {isSearching ? (
+                  <svg className="spinner" width="20" height="20" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.25"/>
+                    <path d="M12 2a10 10 0 0110 10" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                )}
+              </button>
+            </div>
+
+            <div className="results-section">
+              {searchResults.length > 0 ? (
+                <>
+                  <div className="results-header">
+                    <span className="results-count">{searchResults.length} výsledků</span>
+                    <button
+                      className="view-table-link"
+                      onClick={() => setActiveView('table')}
+                    >
+                      Zobrazit tabulku →
+                    </button>
+                  </div>
+                  <div className="results-list">
+                    {searchResults.slice(0, 8).map((result, index) => (
+                      <div key={index} className="result-card">
+                        <div className="result-label">{result.label || 'Výsledek'}</div>
+                        <div className="result-value">{result.value}</div>
+                        <div className="result-confidence">
+                          <div className="confidence-bar">
+                            <div
+                              className="confidence-fill"
+                              style={{width: `${Math.round((result.confidence || 0) * 100)}%`}}
+                            />
+                          </div>
+                          <span className="confidence-text">
+                            {Math.round((result.confidence || 0) * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="results-empty-state">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" opacity="0.3">
+                    <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.5"/>
+                    <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                  <p>Zadejte dotaz a vložte text pro vyhledávání</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="right-pane">
+            <div className="pane-header">
+              <h2 className="pane-title">Dokument</h2>
               <input
                 type="file"
                 ref={fileInputRef}
@@ -175,91 +255,42 @@ function AppMain() {
                 accept=".txt,.docx,.pdf"
                 style={{ display: 'none' }}
               />
-              <button 
+              <button
                 onClick={() => fileInputRef.current?.click()}
-                className="upload-btn"
+                className="upload-file-btn"
               >
-                📁 Načíst dokument
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m14-7l-5-5-5 5m5-5v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Nahrát soubor
               </button>
-              {documentText && (
-                <span className="file-status">
-                  ✅ Dokument načten ({documentText.length} znaků)
-                </span>
-              )}
             </div>
 
-            <div className="search-box">
-              <input
-                type="text"
-                placeholder="Zadejte hledaný výraz..."
-                className="search-input"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            <div className="document-area">
+              <textarea
+                placeholder="Vložte text dokumentu..."
+                className="document-textarea"
+                value={documentText}
+                onChange={(e) => setDocumentText(e.target.value)}
               />
-              <button 
-                className="search-btn"
-                onClick={handleSearch}
-                disabled={isSearching || !searchQuery.trim() || !documentText.trim()}
-              >
-                {isSearching ? '🔍 Hledám...' : 'Hledat'}
-              </button>
-            </div>
-            
-            <div className="search-results">
-              {searchResults.length > 0 ? (
-                <div>
-                  <h3>Výsledky hledání ({searchResults.length})</h3>
-                  <div className="results-list">
-                    {searchResults.slice(0, 10).map((result, index) => (
-                      <div key={index} className="result-item">
-                        <div className="result-label">{result.label || 'Výsledek'}</div>
-                        <div className="result-value">{result.value}</div>
-                        <div className="result-meta">
-                          Spolehlivost: {Math.round((result.confidence || 0) * 100)}%
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <button 
-                    className="view-all-btn"
-                    onClick={() => setActiveView('table')}
-                  >
-                    Zobrazit všechny v tabulce →
-                  </button>
-                </div>
-              ) : (
-                <p>Zatím žádné výsledky. Načtěte dokument a zadejte hledaný výraz.</p>
-              )}
-            </div>
-          </div>
-          
-          <div className="document-panel">
-            <h2>Dokument</h2>
-            <div className="document-viewer">
-              {documentText ? (
-                <div className="document-content">
-                  <div className="document-stats">
-                    <span>📊 {documentText.length} znaků</span>
-                    <span>📃 {documentText.split('\n').length} řádků</span>
-                    <span>🔍 {searchResults.length} výsledků</span>
-                  </div>
-                  <pre className="document-text">
-                    {documentText.substring(0, 2000)}
-                    {documentText.length > 2000 && '...'}
-                  </pre>
-                </div>
-              ) : (
-                <div className="document-placeholder">
-                  <p>📁 Klikněte na "Načíst dokument" pro analýzu</p>
-                  <p>Podporované formáty: .txt, .docx, .pdf</p>
+              {documentText && (
+                <div className="document-stats-overlay">
+                  <span>{documentText.length} znaků</span>
+                  <span>•</span>
+                  <span>{documentText.split('\n').length} řádků</span>
                 </div>
               )}
             </div>
           </div>
         </div>
       ) : (
-        <div className="table-container">
+        <div className="table-view-container">
+          <button
+            className="back-to-search"
+            onClick={() => setActiveView('search')}
+          >
+            ← Zpět na vyhledávání
+          </button>
           <TableView
             searchResults={searchResults}
             onExport={handleExport}
