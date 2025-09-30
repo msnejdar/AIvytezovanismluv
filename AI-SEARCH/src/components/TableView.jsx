@@ -5,7 +5,7 @@ const TableView = ({
   searchResults = [],
   onExport,
   onResultClick,
-  selectedFields = ['label', 'value', 'type', 'absoluteValue'],
+  selectedFields = ['query', 'label', 'value', 'absoluteValue', 'type'],
   showExportOptions = true
 }) => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
@@ -14,10 +14,11 @@ const TableView = ({
 
   // Available columns for export
   const availableColumns = [
+    { key: 'query', label: 'Dotaz', type: 'text' },
     { key: 'label', label: 'Popisek', type: 'text' },
     { key: 'value', label: 'Hodnota', type: 'text' },
-    { key: 'type', label: 'Typ', type: 'text' },
-    { key: 'absoluteValue', label: 'Absolutní hodnota', type: 'text' }
+    { key: 'absoluteValue', label: 'Absolutní hodnota', type: 'text' },
+    { key: 'type', label: 'Typ', type: 'text' }
   ]
 
   // Detect if value is number or text
@@ -60,7 +61,8 @@ const TableView = ({
 
           rows.push({
             id: `${index}-0`,
-            label: result.query || 'Výsledek',
+            query: result.query || 'Dotaz',
+            label: result.answer.label || 'Výsledek',
             value: value,
             type: valueType,
             absoluteValue: absoluteValue,
@@ -75,7 +77,8 @@ const TableView = ({
 
             rows.push({
               id: `${index}-${itemIndex}`,
-              label: item.label || result.query || 'Výsledek',
+              query: result.query || 'Dotaz',
+              label: item.label || 'Výsledek',
               value: value,
               type: valueType,
               absoluteValue: absoluteValue,
@@ -91,7 +94,8 @@ const TableView = ({
 
         rows.push({
           id: result.id || index,
-          label: result.query || result.label || 'Výsledek',
+          query: result.query || 'Dotaz',
+          label: result.label || 'Výsledek',
           value: value,
           type: valueType,
           absoluteValue: absoluteValue,
