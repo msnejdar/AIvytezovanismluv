@@ -400,16 +400,17 @@ function AppMain() {
             <h2 className="table-title">Historie vyhledávání ({searchHistory.length})</h2>
           </div>
           <TableView
-            searchResults={searchHistory.map(item => ({
-              label: item.query,
-              value: item.answer,
-              confidence: item.confidence
-            }))}
+            searchResults={searchHistory}
             onExport={handleExport}
             onResultClick={(result) => {
               setShowTable(false)
-              setSearchQuery(result.label)
-              setSearchAnswer(result.value)
+              setSearchQuery(result.rawResult.query)
+              setSearchAnswer(result.rawResult.answer)
+              setHighlightText(
+                result.rawResult.answer.type === 'multiple'
+                  ? result.rawResult.answer.results.map(r => r.value)
+                  : [result.rawResult.answer.value]
+              )
             }}
           />
         </div>
