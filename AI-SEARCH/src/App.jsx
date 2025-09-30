@@ -1536,7 +1536,7 @@ function App() {
 
   console.log('[Render] Showing main app interface')
   return (
-    <div className="app-shell">
+    <div className="app-dual">
       <aside className="panel search-panel glass-panel">
         <div className="search-header">
           <div className="porsche-badge">
@@ -1545,12 +1545,12 @@ function App() {
           </div>
         </div>
 
-        <div className="panel-scroll">
+        <div className="search-stack">
           <div className="search-input-container">
             <input
               type="text"
               className="search-input"
-              placeholder="Vyhledávat v smlouvě: osobní údaje, částky, termíny, strany..."
+              placeholder="Vyhledávat v textu: osobní údaje, částky, termíny, strany..."
               value={searchQuery}
               onChange={(e) => {
                 const newQuery = e.target.value
@@ -1578,157 +1578,22 @@ function App() {
                 </svg>
               )}
             </button>
-            <select
-              className="search-mode-select"
-              value={searchMode}
-              onChange={(e) => setSearchMode(e.target.value)}
-            >
-              <option value="contract">🏛️ Smlouvy</option>
-              <option value="intelligent">🧠 Inteligentní</option>
-              <option value="fuzzy">🔍 Fuzzy</option>
-              <option value="semantic">💡 Sémantické</option>
-              <option value="simple">📄 Jednoduché</option>
-            </select>
-            <button
-              className="test-button"
-              onClick={performIntelligentSearch}
-              disabled={!searchQuery.trim() || !documentText.trim()}
-            >
-              Vyhledat
-            </button>
-            {highlightRanges.length > 0 && (
-              <button
-                className="clear-button"
-                onClick={() => {
-                  setHighlightRanges([])
-                  setActiveResultId(null)
-                  setSearchResults([])
-                }}
-              >
-                Clear
-              </button>
-            )}
-            <button
-              className="filters-toggle"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              {showFilters ? 'Hide' : 'Show'} Filters
-            </button>
           </div>
+
+          <select
+            className="search-mode-select"
+            value={searchMode}
+            onChange={(e) => setSearchMode(e.target.value)}
+          >
+            <option value="contract">🏛️ Smlouvy</option>
+            <option value="intelligent">🧠 Inteligentní</option>
+            <option value="fuzzy">🔍 Fuzzy</option>
+            <option value="semantic">💡 Sémantické</option>
+            <option value="simple">📄 Jednoduché</option>
+          </select>
 
           {renderSearchFilters()}
 
-          <div className="quick-tests">
-            <h3 className="quick-tests-title">Rychlé testy (použijte prefix „local:“)</h3>
-            <div className="quick-tests-grid">
-              <button
-                className="quick-test-button"
-                onClick={() => {
-                  const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
-                  setDocumentText(testText)
-                  setSearchQuery('local:rodné číslo')
-                  setSearchMode('intelligent')
-                }}
-              >
-                RNČ test
-              </button>
-              <button
-                className="quick-test-button"
-                onClick={() => {
-                  const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
-                  setDocumentText(testText)
-                  setSearchQuery('local:cena')
-                  setSearchMode('semantic')
-                }}
-              >
-                Částka test
-              </button>
-              <button
-                className="quick-test-button"
-                onClick={() => {
-                  const testText = 'Jan Novák, rodné číslo: 940919/1022, kupní cena: 7 850 000 Kč'
-                  setDocumentText(testText)
-                  setSearchQuery('local:Jan')
-                  setSearchMode('fuzzy')
-                }}
-              >
-                Jméno test
-              </button>
-              <button
-                className="quick-test-button"
-                onClick={() => {
-                  setDocumentText('Tomáš Novotný - 680412/2156, Petra Novotná - 705523/3298, Martin Procházka - 850915/4789')
-                  setSearchQuery('local:osoba')
-                  setSearchMode('intelligent')
-                  performIntelligentSearch()
-                }}
-              >
-                Multi-person test
-              </button>
-            </div>
-          </div>
-
-          <div className="history-section">
-            <div className="history-header">
-              <h3 className="history-title">Historie vyhledávání</h3>
-              {searchHistory.length > 0 && (
-                <button
-                  className="clear-history-button"
-                  onClick={() => {
-                    setSearchHistory([])
-                    localStorage.removeItem('searchHistory')
-                  }}
-                  title="Smazat historii"
-                >
-                  <svg className="clear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="3,6 5,6 21,6"></polyline>
-                    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
-                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                  </svg>
-                </button>
-              )}
-            </div>
-            <div className="history-list">
-              {searchHistory.length === 0 ? (
-                <div className="history-empty">Zatím žádná historie</div>
-              ) : (
-                searchHistory.map(item => (
-                  <div
-                    key={item.id}
-                    className="history-item"
-                    onClick={() => handleHistoryClick(item.query)}
-                  >
-                    <span className="history-query">{item.query}</span>
-                    <span className="history-time">
-                      {new Date(item.timestamp).toLocaleTimeString('cs-CZ', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <main className="panel results-panel glass-panel">
-        <div className="panel-header">
-          <div>
-            <h2 className="panel-title">Výsledky vyhledávání</h2>
-            <p className="panel-subtitle">Futuristická analýza klíčových informací</p>
-          </div>
-          {performanceStats && (
-            <div className="panel-metric">
-              <span className="metric-label">Doba vyhledávání</span>
-              <span className="metric-value">{performanceStats.duration.toFixed(0)} ms</span>
-            </div>
-          )}
-        </div>
-
-        <div className="panel-scroll">
           {searchWarnings.length > 0 && (
             <div className="warnings-section">
               <div className="warnings-header">
@@ -1744,23 +1609,13 @@ function App() {
             </div>
           )}
 
-          {searchResults.length > 0 ? (
-            <div className="results-section">
-              <div className="results-header">
-                <h3 className="results-title">Výsledky</h3>
-                {searchResults.some(r => (r.matches && r.matches.length > 0)) && (
-                  <button
-                    className="show-all-button"
-                    onClick={() => {
-                      const allMatches = searchResults.flatMap(result => result.matches || [])
-                      setHighlightRanges(allMatches)
-                      setActiveResultId(null)
-                    }}
-                  >
-                    Zobrazit vše
-                  </button>
-                )}
+          <div className="results-stack">
+            <h3 className="results-title">Výsledky</h3>
+            {searchResults.length === 0 ? (
+              <div className="results-empty">
+                <p>Zadejte dotaz a vložte text dokumentu vpravo.</p>
               </div>
+            ) : (
               <div className="results-container">
                 {searchResults.map(result => (
                   <div
@@ -1772,7 +1627,7 @@ function App() {
                       <div className="result-label">
                         {result.label}
                         {result.type && (
-                          <span className={`status-indicator ${result.type}`} style={{ marginLeft: '0.5rem', padding: '0.25rem 0.5rem' }}>
+                          <span className={`status-indicator ${result.type}`}>
                             {result.type}
                           </span>
                         )}
@@ -1782,33 +1637,23 @@ function App() {
                       {result.value ?? result.content}
                     </div>
                     {result.confidence && (
-                      <div style={{ marginTop: '0.75rem' }}>
+                      <div className="result-confidence">
                         {renderConfidenceMeter(result.confidence, 'Přesnost')}
-                      </div>
-                    )}
-                    {result.context && (
-                      <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--legal-text-muted)', fontStyle: 'italic' }}>
-                        Kontext: {result.context}
                       </div>
                     )}
                   </div>
                 ))}
               </div>
-            </div>
-          ) : (
-            <div className="results-empty">
-              <h3>Žádné výsledky</h3>
-              <p>Zadejte dotaz vlevo a vložte text dokumentu, abychom mohli vyhledávat.</p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </main>
+      </aside>
 
       <section className="panel document-panel glass-panel">
         <div className="panel-header">
           <div>
-            <h2 className="panel-title">Smlouva / Právní dokument</h2>
-            <p className="panel-subtitle">Práce s textem v reálném čase</p>
+            <h2 className="panel-title">Pracovní text dokumentu</h2>
+            <p className="panel-subtitle">Vložte nebo upravte text, ve kterém chcete vyhledávat</p>
           </div>
           <div className="panel-metric-group">
             {highlightRanges.length > 0 ? (
@@ -1822,7 +1667,7 @@ function App() {
                     setSearchResults([])
                   }}
                 >
-                  Upravit text
+                  Vymazat zvýraznění
                 </button>
               </>
             ) : (
@@ -1834,7 +1679,7 @@ function App() {
         <div className="document-body">
           <textarea
             className="document-input"
-            placeholder="Vložte text smlouvy nebo právního dokumentu pro analýzu a vyhledávání klíčových informací..."
+            placeholder="Vložte text smlouvy nebo jiného dokumentu, ve kterém chcete vyhledávat..."
             value={documentText}
             onChange={(e) => setDocumentText(e.target.value)}
             style={{ display: highlightRanges.length > 0 ? 'none' : 'block' }}
@@ -1848,9 +1693,7 @@ function App() {
               ref={highlightedDocumentRef}
               dangerouslySetInnerHTML={{
                 __html: (() => {
-                  console.log('[Component] Rendering highlighted document with ranges:', highlightRanges)
                   const html = highlightDocument(documentText, highlightRanges)
-                  console.log('[Component] Generated HTML preview:', html.substring(0, 300))
                   return html
                 })()
               }}
@@ -1859,7 +1702,7 @@ function App() {
         </div>
       </section>
 
-      <button className="theme-toggle" onClick={toggleTheme} title="Toggle Theme">
+      <button className="theme-toggle" onClick={toggleTheme} title="Přepnout motiv">
         {theme === 'dark' ? '☀️' : '🌙'}
       </button>
     </div>
