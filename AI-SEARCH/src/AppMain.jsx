@@ -682,14 +682,32 @@ function AppMain() {
             searchResults={searchHistory}
             onExport={handleExport}
             onResultClick={(result) => {
+              // Close table and show search view with highlighted value
               setShowTable(false)
+
+              // Set the query and answer
               setSearchQuery(result.rawResult.query)
               setSearchAnswer(result.rawResult.answer)
-              setHighlightText(
-                result.rawResult.answer.type === 'multiple'
-                  ? result.rawResult.answer.results.map(r => r.value)
-                  : [result.rawResult.answer.value]
-              )
+
+              // Extract value(s) to highlight
+              let valuesToHighlight = []
+              if (result.rawResult.answer) {
+                if (result.rawResult.answer.type === 'multiple') {
+                  valuesToHighlight = result.rawResult.answer.results.map(r => r.value)
+                } else if (result.rawResult.answer.type === 'single') {
+                  valuesToHighlight = [result.rawResult.answer.value]
+                }
+              }
+
+              // Set highlight and scroll to it
+              setHighlightText(valuesToHighlight)
+
+              // After state update, scroll to highlight
+              setTimeout(() => {
+                if (highlightedTextRef.current && valuesToHighlight.length > 0) {
+                  highlightedTextRef.current.scrollToHighlight(valuesToHighlight)
+                }
+              }, 100)
             }}
           />
         </div>
