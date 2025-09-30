@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import './App.css'
 import TableView from './components/TableView.jsx'
+import HighlightedText from './components/HighlightedText.jsx'
 import { ExportSystem } from './exportSystem.js'
 import { aiSearch } from './aiSearch.js'
 import { removeDiacritics } from './documentNormalizer.js'
@@ -20,8 +21,10 @@ function AppMain() {
   const [searchHistory, setSearchHistory] = useState([]) // History for table
   const [isSearching, setIsSearching] = useState(false)
   const [showTable, setShowTable] = useState(false) // Show/hide table
-  
+  const [highlightText, setHighlightText] = useState(null) // Text to highlight in document
+
   const fileInputRef = useRef(null)
+  const highlightedTextRef = useRef(null)
 
   useEffect(() => {
     const auth = localStorage.getItem('authenticated')
@@ -77,6 +80,7 @@ function AppMain() {
 
       if (result.success) {
         setSearchAnswer(result.answer)
+        setHighlightText(result.answer) // Set text to highlight
 
         // Add to history for table view
         const historyItem = {
@@ -88,6 +92,7 @@ function AppMain() {
         setSearchHistory(prev => [historyItem, ...prev])
       } else {
         setError(result.error || 'Chyba při vyhledávání')
+        setHighlightText(null)
       }
     } catch (error) {
       console.error('Search error:', error)
@@ -237,8 +242,23 @@ function AppMain() {
                     <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   <span>Výsledek:</span>
+                  <span className="click-hint">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2"/>
+                      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
+                    Klikněte pro zobrazení v textu
+                  </span>
                 </div>
-                <div className="ai-answer-box">
+                <div
+                  className="ai-answer-box clickable"
+                  onClick={() => {
+                    if (highlightedTextRef.current) {
+                      highlightedTextRef.current.scrollToHighlight();
+                    }
+                  }}
+                  title="Klikněte pro zobrazení v dokumentu"
+                >
                   {searchAnswer}
                 </div>
               </div>
@@ -283,18 +303,57 @@ function AppMain() {
             </div>
 
             <div className="document-area">
-              <textarea
-                placeholder="Vložte text dokumentu..."
-                className="document-textarea"
-                value={documentText}
-                onChange={(e) => setDocumentText(e.target.value)}
-              />
-              {documentText && (
-                <div className="document-stats-overlay">
-                  <span>{documentText.length} znaků</span>
-                  <span>•</span>
-                  <span>{documentText.split('\n').length} řádků</span>
-                </div>
+              {documentText ? (
+                <>
+                  <div className="document-display">
+                    <HighlightedText
+                      ref={highlightedTextRef}
+                      text={documentText}
+                      highlight={highlightText}
+                      onHighlightClick={() => {
+                        console.log('Scrolled to highlight');
+                      }}
+                    />
+                  </div>
+                  <button
+                    className="edit-document-btn"
+                    onClick={() => {
+                      setHighlightText(null);
+                      // Focus would go here if we want to switch to edit mode
+                    }}
+                    title="Upravit dokument"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                  {documentText && (
+                    <div className="document-stats-overlay">
+                      <span>{documentText.length} znaků</span>
+                      <span>•</span>
+                      <span>{documentText.split('\n').length} řádků</span>
+                      {highlightText && (
+                        <>
+                          <span>•</span>
+                          <span className="highlight-indicator">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
+                            </svg>
+                            Zvýrazněno
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <textarea
+                  placeholder="Vložte text dokumentu..."
+                  className="document-textarea"
+                  value={documentText}
+                  onChange={(e) => setDocumentText(e.target.value)}
+                />
               )}
             </div>
           </div>

@@ -489,6 +489,43 @@ body {
 .document-area {
   flex: 1;
   position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.document-display {
+  flex: 1;
+  background: var(--glass-white-50);
+  border: 1px solid var(--glass-gray-200);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.edit-document-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  background: var(--glass-white-80);
+  backdrop-filter: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md));
+  border: 1px solid var(--glass-gray-300);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--glass-gray-600);
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.edit-document-btn:hover {
+  background: var(--glass-white);
+  color: var(--glass-gray-800);
+  transform: scale(1.05);
 }
 
 .document-textarea {
@@ -531,7 +568,21 @@ body {
   color: var(--glass-gray-600);
   display: flex;
   gap: 8px;
+  align-items: center;
   pointer-events: none;
+}
+
+.highlight-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: rgba(251, 191, 36, 0.9);
+  font-weight: 600;
+}
+
+.highlight-indicator svg {
+  color: rgba(251, 191, 36, 1);
+  filter: drop-shadow(0 1px 2px rgba(251, 191, 36, 0.3));
 }
 
 /* ===== ERROR TOAST ===== */
@@ -606,6 +657,23 @@ body {
   color: var(--glass-gray-600);
 }
 
+.ai-answer-header .click-hint {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--glass-gray-500);
+  text-transform: none;
+  letter-spacing: normal;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0.7;
+}
+
+.ai-answer-header .click-hint svg {
+  opacity: 0.6;
+}
+
 .ai-answer-box {
   padding: 16px;
   background: var(--glass-white);
@@ -616,6 +684,18 @@ body {
   color: var(--glass-gray-900);
   line-height: 1.6;
   word-break: break-word;
+  transition: all 0.2s ease;
+}
+
+.ai-answer-box.clickable {
+  cursor: pointer;
+}
+
+.ai-answer-box.clickable:hover {
+  background: var(--glass-white);
+  border-color: var(--glass-gray-300);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 /* ===== SHOW TABLE BUTTON ===== */
