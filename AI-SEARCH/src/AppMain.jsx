@@ -461,48 +461,56 @@ function AppMain() {
                   <h2 className="pane-title">Vyhledávání</h2>
                 </div>
 
-                <div className="search-input-group">
-              <textarea
-                placeholder="Co chcete vyhledat? (Ctrl+Enter pro hledání)"
-                className="main-search-input"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
+                <div className="search-input-wrapper">
+              <div className="search-input-container">
+                <svg className="search-icon-left" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                <textarea
+                  placeholder="Co chcete vyhledat?"
+                  className="main-search-input"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
 
-                  // Auto-resize textarea based on content (max 5 rows)
-                  const textarea = e.target
-                  textarea.style.height = 'auto'
-                  const lineHeight = 24 // Approximate line height in px
-                  const maxHeight = lineHeight * 5 // 5 rows max
-                  const newHeight = Math.min(textarea.scrollHeight, maxHeight)
-                  textarea.style.height = newHeight + 'px'
-                }}
-                onKeyPress={(e) => {
-                  // Only search on Ctrl/Cmd+Enter, not plain Enter (allow newlines)
-                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                    e.preventDefault()
-                    handleSearch()
-                  }
-                }}
-                rows={1}
-              />
-              <button
-                className="main-search-btn"
-                onClick={handleSearch}
-                disabled={isSearching || !searchQuery.trim() || !documentText.trim()}
-              >
-                {isSearching ? (
-                  <svg className="spinner" width="20" height="20" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.25"/>
-                    <path d="M12 2a10 10 0 0110 10" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
-                  </svg>
-                ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
-                    <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                )}
-              </button>
+                    // Auto-resize textarea based on content (max 5 rows)
+                    const textarea = e.target
+                    textarea.style.height = 'auto'
+                    const lineHeight = 24 // Approximate line height in px
+                    const maxHeight = lineHeight * 5 // 5 rows max
+                    const newHeight = Math.min(textarea.scrollHeight, maxHeight)
+                    textarea.style.height = newHeight + 'px'
+                  }}
+                  onKeyPress={(e) => {
+                    // Only search on Ctrl/Cmd+Enter, not plain Enter (allow newlines)
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                      e.preventDefault()
+                      handleSearch()
+                    }
+                  }}
+                  rows={1}
+                />
+                <div className="search-actions">
+                  <span className="search-hint">⌘↵</span>
+                  <button
+                    className="main-search-btn"
+                    onClick={handleSearch}
+                    disabled={isSearching || !searchQuery.trim() || !documentText.trim()}
+                  >
+                    {isSearching ? (
+                      <svg className="spinner" width="20" height="20" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.25"/>
+                        <path d="M12 2a10 10 0 0110 10" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
+                      </svg>
+                    ) : (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* AI Answer displayed directly */}
