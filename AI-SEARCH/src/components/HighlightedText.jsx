@@ -10,6 +10,7 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
   const containerRef = useRef(null);
   const highlightRefs = useRef([]);
   const highlightsByValue = useRef(new Map()); // Map of value -> refs
+  const currentHighlightIndex = useRef(0); // Track which highlight to scroll to next
 
   console.log('[HighlightedText] RENDER - text length:', text?.length, 'highlight:', highlight);
 
@@ -17,9 +18,45 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
     console.log('[HighlightedText] useEffect - resetting refs');
     highlightRefs.current = [];
     highlightsByValue.current = new Map();
+    currentHighlightIndex.current = 0; // Reset cycle when highlight changes
   }, [text, highlight]);
 
-  // Scroll to first highlight of specified values
+  // Scroll to next highlight in cycle
+  const scrollToNextHighlight = () => {
+    console.log('[HighlightedText] scrollToNextHighlight - cycling through highlights');
+    const allRefs = highlightRefs.current.filter(el => el);
+
+    if (allRefs.length === 0) {
+      console.log('[HighlightedText] No highlights to cycle through');
+      return;
+    }
+
+    console.log('[HighlightedText] Total highlights:', allRefs.length, 'Current index:', currentHighlightIndex.current);
+
+    // Get current highlight to scroll to
+    const targetRef = allRefs[currentHighlightIndex.current];
+
+    if (targetRef) {
+      console.log('[HighlightedText] Scrolling to highlight #', currentHighlightIndex.current + 1, 'of', allRefs.length);
+      targetRef.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+
+      // Blink only the target
+      targetRef.classList.add('highlight-blink');
+      setTimeout(() => targetRef.classList.remove('highlight-blink'), 600);
+
+      // Move to next highlight (cycle back to 0 if at end)
+      currentHighlightIndex.current = (currentHighlightIndex.current + 1) % allRefs.length;
+    }
+
+    if (onHighlightClick) {
+      onHighlightClick();
+    }
+  };
+
+  // Scroll to first highlight of specified values (called from parent)
   const scrollToHighlight = (valuesToHighlight) => {
     console.log('[HighlightedText] scrollToHighlight called with:', valuesToHighlight);
     console.log('[HighlightedText] highlightRefs.current:', highlightRefs.current);
@@ -59,12 +96,15 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
 
     if (refsToAnimate.length > 0 && refsToAnimate[0]) {
       console.log('[HighlightedText] Scrolling to first ref');
+
+      // Reset cycle and scroll to first
+      currentHighlightIndex.current = 0;
       refsToAnimate[0].scrollIntoView({
         behavior: 'smooth',
         block: 'center'
       });
 
-      // Blink animation
+      // Blink animation for all matching highlights
       refsToAnimate.forEach((el, index) => {
         if (el) {
           setTimeout(() => {
@@ -73,6 +113,9 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
           }, index * 100);
         }
       });
+
+      // Set next index for cycling
+      currentHighlightIndex.current = 1 % refsToAnimate.length;
     } else {
       console.log('[HighlightedText] No refs to animate!');
     }
@@ -197,7 +240,7 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
                 }
               }}
               className="text-highlight"
-              onClick={scrollToHighlight}
+              onClick={scrollToNextHighlight}
             >
               {part.content}
             </mark>
