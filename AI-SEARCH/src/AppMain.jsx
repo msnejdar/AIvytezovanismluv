@@ -76,7 +76,7 @@ function AppMain() {
 
   const categorizeQueries = useCallback(async (queries) => {
     try {
-      const response = await fetch('http://localhost:3001/api/categorize', {
+      const response = await fetch('/api/categorize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ queries })
@@ -190,7 +190,7 @@ function AppMain() {
       })
 
       try {
-        const response = await fetch('http://localhost:3001/api/batch-search', {
+        const response = await fetch('/api/batch-search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
