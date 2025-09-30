@@ -28,11 +28,27 @@ const TableView = ({
   const tableData = useMemo(() => {
     return searchResults.map((result, index) => {
       const primaryMatch = result.matches?.[0]
-      
+
+      // Extract actual value from AI response object
+      let displayValue = ''
+      if (result.answer) {
+        // AI response format: {type: "single", value: "..."} or {type: "multiple", results: [...]}
+        if (result.answer.type === 'single') {
+          displayValue = result.answer.value
+        } else if (result.answer.type === 'multiple' && result.answer.results?.length > 0) {
+          // For multiple results, show all values separated by comma
+          displayValue = result.answer.results.map(r => r.value).join(', ')
+        }
+      } else if (typeof result.value === 'string') {
+        displayValue = result.value
+      } else if (result.content) {
+        displayValue = result.content
+      }
+
       return {
         id: result.id || index,
-        label: result.label || 'Výsledek',
-        value: result.value || result.content || '',
+        label: result.query || result.label || 'Výsledek',
+        value: displayValue,
         type: result.type || 'text',
         confidence: result.confidence || primaryMatch?.confidence || primaryMatch?.score || 0,
         context: result.context || '',
