@@ -492,7 +492,6 @@ function AppMain() {
                   rows={1}
                 />
                 <div className="search-actions">
-                  <span className="search-hint">⌘↵</span>
                   <button
                     className="main-search-btn"
                     onClick={handleSearch}
