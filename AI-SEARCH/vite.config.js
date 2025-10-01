@@ -12,5 +12,18 @@ export default defineConfig({
         secure: false,
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split large libraries into separate chunks
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-pdf': ['jspdf', 'jspdf-autotable'],
+          'vendor-excel': ['xlsx']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 600 // Increase limit slightly to avoid warnings for optimized chunks
   }
 })
