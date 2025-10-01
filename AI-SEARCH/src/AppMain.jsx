@@ -145,6 +145,14 @@ function AppMain() {
       const result = await aiSearch(documentText, searchQuery)
 
       if (result.success) {
+        console.log('🎯 CLIENT: Search result received:', {
+          hasFullContext: !!result.fullContext,
+          fullContextLength: result.fullContext?.length || 0,
+          fullContextPreview: result.fullContext?.substring(0, 100) || 'N/A',
+          answerType: typeof result.answer,
+          answer: result.answer
+        });
+
         setSearchAnswer(result.answer)
 
         // Extract values for highlighting
@@ -152,19 +160,24 @@ function AppMain() {
 
         // Check if this is a yes/no question with fullContext
         if (result.fullContext) {
+          console.log('✅ CLIENT: Using fullContext for highlight:', result.fullContext.substring(0, 100));
           // Yes/No question: highlight fullContext, but show answer in table
           valuesToHighlight = [result.fullContext];
         } else if (result.answer.type === 'multiple') {
+          console.log('📋 CLIENT: Multiple results');
           // Multiple results
           valuesToHighlight = result.answer.results.map(r => r.value);
         } else if (result.answer.type === 'single') {
+          console.log('📄 CLIENT: Single result');
           // Single result
           valuesToHighlight = [result.answer.value];
         } else {
+          console.log('📝 CLIENT: Fallback to simple answer');
           // Fallback for simple string answers
           valuesToHighlight = [result.answer];
         }
 
+        console.log('🔦 CLIENT: Final valuesToHighlight:', valuesToHighlight);
         setHighlightText(valuesToHighlight)
 
         // Add to history for table view

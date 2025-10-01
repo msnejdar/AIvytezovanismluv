@@ -106,10 +106,17 @@ Tvoje odpověď:`
         // Extract answer from Claude response
         const rawText = data.content?.[0]?.text?.trim() || 'Nenalezeno';
 
+        console.log('🔍 Claude raw response:', rawText.substring(0, 200));
+
         // Try to parse as JSON (for yes/no questions)
         if (rawText.startsWith('{')) {
           try {
             const parsed = JSON.parse(rawText);
+            console.log('✅ JSON parsed successfully');
+            console.log('   answer:', parsed.answer);
+            console.log('   fullContext length:', parsed.fullContext?.length || 0);
+            console.log('   fullContext preview:', parsed.fullContext?.substring(0, 100) || 'EMPTY');
+
             if (parsed.answer && parsed.fullContext !== undefined) {
               // Yes/No question response
               return {
@@ -120,11 +127,12 @@ Tvoje odpověď:`
             }
           } catch (e) {
             // If JSON parsing fails, treat as normal answer
-            console.log('JSON parse failed, treating as normal answer');
+            console.log('❌ JSON parse failed, treating as normal answer:', e.message);
           }
         }
 
         // Normal question response (backward compatible)
+        console.log('📝 Normal answer (not JSON)');
         return { success: true, answer: rawText };
       } else {
         // Pokud je API přetížené a máme ještě pokusy, zkusíme znovu
@@ -313,14 +321,21 @@ app.post('/api/search', async (req, res) => {
 
   if (result.success) {
     console.log(`[API] Odpověď: "${result.answer.substring(0, 100)}..."`);
+
     // Include fullContext if present (for yes/no questions)
     const response = {
       answer: result.answer,
       confidence: 0.95
     };
+
     if (result.fullContext !== undefined) {
+      console.log(`[API] 🎯 fullContext detected! Length: ${result.fullContext.length}`);
+      console.log(`[API] 🎯 fullContext preview: "${result.fullContext.substring(0, 150)}..."`);
       response.fullContext = result.fullContext;
+    } else {
+      console.log(`[API] ⚠️ No fullContext in response`);
     }
+
     res.json(response);
   } else {
     const status = result.status || 500;
