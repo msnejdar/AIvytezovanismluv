@@ -41,45 +41,32 @@ async function callClaudeAPI(query, document, retries = 3, delay = 1000) {
           max_tokens: 1024,
           messages: [{
             role: 'user',
-            content: `Analyzuj následující text a odpověz na dotaz uživatele.
-
-Uživatel se ptá: "${query}"
-
-Text dokumentu:
+            content: `Dokument:
 ${document}
 
-DETEKCE TYPU DOTAZU:
-Pokud dotaz žádá odpověď "Ano/Ne" (obsahuje "ano/ne", "ano nebo ne", "yes/no", apod.):
-  → Vrať JSON: {"answer": "Ano" nebo "Ne", "fullContext": "celý relevantní text z dokumentu"}
-Jinak (normální dotaz na konkrétní údaj):
-  → Vrať prostý text: "hodnota"
+Dotaz: "${query}"
 
-INSTRUKCE PRO ANO/NE DOTAZY (vrať JSON):
-- "answer": POUZE "Ano" nebo "Ne"
-- "fullContext": CELÁ relevantní sekce z dokumentu (NIKDY ne jen "Ano/Ne"!)
-- Zkopíruj kompletní text (článek/odstavec/tabulku), může být dlouhý
+FORMÁT ODPOVĚDI - PŘESNĚ DODRŽUJ:
 
-ŠPATNĚ ❌:
-{"answer": "Ano", "fullContext": "Ano"}
+1) Pokud dotaz obsahuje "ano/ne", "ano nebo ne", "yes/no" nebo podobně:
+   Vrať POUZE validní JSON (bez markdown):
+   {"answer": "Ano", "fullContext": "kompletní relevantní text z dokumentu"}
 
-SPRÁVNĚ ✅:
-{"answer": "Ano", "fullContext": "Tabulka identifikačních dokladů Dlužníka\n\nTyp dokladu: Občanský průkaz\nČíslo: AB123456\nPlatnost do: 31.12.2030\n\nTyp dokladu: Pas\nČíslo: 98765432\nPlatnost do: 15.5.2028"}
+   - answer: jen "Ano" nebo "Ne"
+   - fullContext: celý odstavec/sekce/tabulka (MIN 50 znaků!)
 
-INSTRUKCE PRO NORMÁLNÍ DOTAZY (vrať prostý text):
-- Rodné číslo, datum, částka, jméno → vrať POUZE ten údaj
-- Pokud nenajdeš → "Nenalezeno"
+2) Pokud dotaz hledá konkrétní hodnotu (číslo, datum, jméno):
+   Vrať POUZE tu hodnotu bez dalšího textu
 
 PŘÍKLADY:
 
-Ano/Ne dotaz:
-Dotaz: "je tam zastavní právo? ano/ne"
-→ {"answer": "Ano", "fullContext": "Článek III - Zastavní právo\n\nDlužník se zavazuje..."}
+Dotaz: "je tam tabulka? ano/ne"
+Odpověď: {"answer": "Ano", "fullContext": "Tabulka identifikačních dokladů Dlužníka\n\nTyp dokladu: Občanský průkaz\nČíslo dokladu: AB123456\nDatum vydání: 1.1.2020\nPlatnost do: 1.1.2030"}
 
-Normální dotaz:
 Dotaz: "rodné číslo"
-→ 920515/1234
+Odpověď: 920515/1234
 
-Tvoje odpověď:`
+TVOJE ODPOVĚĎ:`
           }]
         })
       });
