@@ -27,21 +27,7 @@ app.get('/', (req, res) => {
 async function callClaudeAPI(query, document, retries = 3, delay = 1000) {
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      // Detect yes/no questions (support multiple formats)
-      // Remove word boundaries (\b) because they don't work well with punctuation (?, spaces)
-      const isYesNoQuestion = /(ano\s+nebo\s+ne|yes\s+or\s+no|ano\s*\/\s*ne|yes\s*\/\s*no)/i.test(query);
-
-      console.log('🔍 Checking if yes/no question:', {
-        query: query,
-        isYesNoQuestion: isYesNoQuestion,
-        regexMatches: query.match(/(ano\s+nebo\s+ne|yes\s+or\s+no|ano\s*\/\s*ne|yes\s*\/\s*no)/i)
-      });
-
-      if (isYesNoQuestion) {
-        console.log('🎯 YES/NO question detected!');
-      } else {
-        console.log('📝 Normal question (not yes/no)');
-      }
+      console.log('🔍 Processing query:', query.substring(0, 100));
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -55,58 +41,43 @@ async function callClaudeAPI(query, document, retries = 3, delay = 1000) {
           max_tokens: 1024,
           messages: [{
             role: 'user',
-            content: isYesNoQuestion ? `Analyzuj následující text a odpověz na ano/ne otázku uživatele.
-
-KRITICKY DŮLEŽITÉ: Vrať JSON ve formátu níže. "fullContext" MUSÍ obsahovat CELÝ relevantní text z dokumentu, NE jen "Ano/Ne"!
+            content: `Analyzuj následující text a odpověz na dotaz uživatele.
 
 Uživatel se ptá: "${query}"
 
 Text dokumentu:
 ${document}
 
-INSTRUKCE PRO "answer":
-- Vrať POUZE "Ano" nebo "Ne"
-- Žádný další text
+DETEKCE TYPU DOTAZU:
+Pokud dotaz žádá odpověď "Ano/Ne" (obsahuje "ano/ne", "ano nebo ne", "yes/no", apod.):
+  → Vrať JSON: {"answer": "Ano" nebo "Ne", "fullContext": "celý relevantní text z dokumentu"}
+Jinak (normální dotaz na konkrétní údaj):
+  → Vrať prostý text: "hodnota"
 
-INSTRUKCE PRO "fullContext":
-- Pokud je odpověď "Ano": najdi v dokumentu CELOU sekci/odstavec/článek, který potvrzuje odpověď
-- NIKDY nevracej jen "Ano" nebo "Ne" do fullContext
-- Zkopíruj KOMPLETNÍ relevantní text z dokumentu (může být dlouhý, to je OK)
-- Pokud je odpověď "Ne": zkopíruj část dokumentu, která to dokládá, NEBO prázdný string ""
+INSTRUKCE PRO ANO/NE DOTAZY (vrať JSON):
+- "answer": POUZE "Ano" nebo "Ne"
+- "fullContext": CELÁ relevantní sekce z dokumentu (NIKDY ne jen "Ano/Ne"!)
+- Zkopíruj kompletní text (článek/odstavec/tabulku), může být dlouhý
 
 ŠPATNĚ ❌:
 {"answer": "Ano", "fullContext": "Ano"}
 
 SPRÁVNĚ ✅:
-{"answer": "Ano", "fullContext": "Článek III - Zastavní právo\n\nDlužník se zavazuje zřídit ve prospěch věřitele zastavní právo k následujícím nemovitostem:\n- Parcela č. 123/45 v k.ú. Praha\n- Budova čp. 678 na parcele č. 123/45\n\nZastavní právo bude zapsáno do katastru nemovitostí..."}
+{"answer": "Ano", "fullContext": "Tabulka identifikačních dokladů Dlužníka\n\nTyp dokladu: Občanský průkaz\nČíslo: AB123456\nPlatnost do: 31.12.2030\n\nTyp dokladu: Pas\nČíslo: 98765432\nPlatnost do: 15.5.2028"}
+
+INSTRUKCE PRO NORMÁLNÍ DOTAZY (vrať prostý text):
+- Rodné číslo, datum, částka, jméno → vrať POUZE ten údaj
+- Pokud nenajdeš → "Nenalezeno"
 
 PŘÍKLADY:
-Dotaz: "Je tam zastavní právo? Ano nebo ne"
-Odpověď: {"answer": "Ano", "fullContext": "[CELÝ text článku/sekce o zastavním právu z dokumentu - i když je to 10 řádků]"}
 
-Dotaz: "Je prodávající fyzická osoba? Ano nebo ne"
-Odpověď: {"answer": "Ne", "fullContext": "Prodávající: ACME s.r.o., IČO: 12345678, se sídlem Praha 1"}
+Ano/Ne dotaz:
+Dotaz: "je tam zastavní právo? ano/ne"
+→ {"answer": "Ano", "fullContext": "Článek III - Zastavní právo\n\nDlužník se zavazuje..."}
 
-Tvoje odpověď (pouze validní JSON):` : `Analyzuj následující text a najdi PŘESNĚ to, co požaduje uživatel.
-
-DŮLEŽITÉ: Vrať POUZE samotnou odpověď, nic víc. Žádný vysvětlující text.
-
-Uživatel hledá: "${query}"
-
-Text dokumentu:
-${document}
-
-INSTRUKCE:
-- Pokud hledá konkrétní údaj (rodné číslo, datum, částku, jméno, atd.), vrať POUZE ten údaj
-- Pokud hledá větu nebo kontext, vrať přesnou větu z textu
-- Pokud nic nenajdeš, vrať "Nenalezeno"
-- NIKDY nevysvětluj, jen vrať výsledek
-
-PŘÍKLADY:
-Dotaz: "rodné číslo Tomáše Vokouna" → Odpověď: "920515/1234"
-Dotaz: "celková cena" → Odpověď: "7 850 000 Kč"
-Dotaz: "datum podpisu" → Odpověď: "15.1.2024"
-Dotaz: "kdo je prodávající" → Odpověď: "Jan Novák"
+Normální dotaz:
+Dotaz: "rodné číslo"
+→ 920515/1234
 
 Tvoje odpověď:`
           }]
