@@ -448,28 +448,29 @@ function AppMain() {
                   <h2 className="pane-title">Hledám...</h2>
                 </div>
                 <div className="batch-progress-content">
-                  {/* 3D Liquid Glass Wave Visualization */}
-                  <div className="liquid-glass-container">
-                    <div className="liquid-glass-wave" style={{
-                      '--wave-height': `${(batchProgress.current / batchProgress.total) * 100}%`
-                    }}>
-                      {/* Background wave layers for depth */}
-                      <div className="wave-layer wave-layer-1"></div>
-                      <div className="wave-layer wave-layer-2"></div>
-                      <div className="wave-layer wave-layer-3"></div>
-                      <div className="wave-layer wave-layer-4"></div>
-
-                      {/* Liquid fill with surface */}
-                      <div className="liquid-fill">
-                        <div className="liquid-surface"></div>
-                        <div className="liquid-body"></div>
-                        <div className="turbulence"></div>
-                      </div>
-
-                      {/* Light effects */}
-                      <div className="caustics"></div>
-                      <div className="fresnel-effect"></div>
-                      <div className="light-reflection"></div>
+                  {/* Rotating Spiral Loader */}
+                  <div className="spiral-loader">
+                    <svg viewBox="0 0 100 100" className="spiral-svg">
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        className="spiral-track"
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        className="spiral-progress"
+                        style={{
+                          strokeDashoffset: `${283 - (283 * (batchProgress.current / batchProgress.total))}`
+                        }}
+                      />
+                    </svg>
+                    <div className="spinner-dots">
+                      <div className="dot dot-1"></div>
+                      <div className="dot dot-2"></div>
+                      <div className="dot dot-3"></div>
                     </div>
                   </div>
                   <div className="progress-text">
