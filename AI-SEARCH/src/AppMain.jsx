@@ -448,11 +448,21 @@ function AppMain() {
                   <h2 className="pane-title">Hledám...</h2>
                 </div>
                 <div className="batch-progress-content">
-                  <div className="progress-bar-container">
-                    <div
-                      className="progress-bar-fill"
-                      style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
-                    />
+                  {/* 3D Crystal Growth Visualization */}
+                  <div className="crystal-container">
+                    <div className="crystal-growth" style={{
+                      '--growth-progress': (batchProgress.current / batchProgress.total)
+                    }}>
+                      <div className="crystal-core"></div>
+                      <div className="crystal-facet crystal-facet-1"></div>
+                      <div className="crystal-facet crystal-facet-2"></div>
+                      <div className="crystal-facet crystal-facet-3"></div>
+                      <div className="crystal-facet crystal-facet-4"></div>
+                      <div className="crystal-facet crystal-facet-5"></div>
+                      <div className="crystal-facet crystal-facet-6"></div>
+                      <div className="crystal-facet crystal-facet-7"></div>
+                      <div className="crystal-facet crystal-facet-8"></div>
+                    </div>
                   </div>
                   <div className="progress-text">
                     {batchProgress.current}/{batchProgress.total}
