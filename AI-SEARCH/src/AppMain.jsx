@@ -30,6 +30,10 @@ function AppMain() {
   const [batchProgress, setBatchProgress] = useState(null) // {current, total, currentQuery}
   const [queryCategoryMap, setQueryCategoryMap] = useState(new Map()) // query -> category mapping
 
+  // Documentation state
+  const [showDocs, setShowDocs] = useState(false)
+  const [activeDocSection, setActiveDocSection] = useState(null)
+
   const fileInputRef = useRef(null)
   const highlightedTextRef = useRef(null)
 
@@ -345,10 +349,6 @@ function AppMain() {
       </div>
     )
   }
-
-  // Documentation state
-  const [showDocs, setShowDocs] = useState(false)
-  const [activeDocSection, setActiveDocSection] = useState(null)
 
   return (
     <div className="main-app">
