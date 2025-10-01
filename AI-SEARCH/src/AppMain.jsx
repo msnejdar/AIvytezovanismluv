@@ -1042,6 +1042,10 @@ allResults = results.flatMap(r => r.results)`}</pre>
                             ...prev,
                             [currentHighlightId]: isCorrect ? 'correct' : 'incorrect'
                           }))
+                          // Return to table after validation
+                          setShowTable(true)
+                          setCurrentHighlightId(null)
+                          setHighlightText(null)
                         }
                       }}
                       onHighlightClick={() => {
