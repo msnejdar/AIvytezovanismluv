@@ -34,6 +34,10 @@ function AppMain() {
   const [showDocs, setShowDocs] = useState(false)
   const [activeDocSection, setActiveDocSection] = useState(null)
 
+  // Validation state - track which search results are marked as correct/incorrect
+  const [validationStatus, setValidationStatus] = useState({}) // { [historyItemId]: 'correct' | 'incorrect' }
+  const [currentHighlightId, setCurrentHighlightId] = useState(null) // Track which highlight is currently shown
+
   const fileInputRef = useRef(null)
   const highlightedTextRef = useRef(null)
 
@@ -1031,6 +1035,15 @@ allResults = results.flatMap(r => r.results)`}</pre>
                       ref={highlightedTextRef}
                       text={documentText}
                       highlight={highlightText}
+                      showValidation={currentHighlightId !== null}
+                      onValidate={(isCorrect) => {
+                        if (currentHighlightId) {
+                          setValidationStatus(prev => ({
+                            ...prev,
+                            [currentHighlightId]: isCorrect ? 'correct' : 'incorrect'
+                          }))
+                        }
+                      }}
                       onHighlightClick={() => {
                         console.log('Scrolled to highlight');
                       }}
@@ -1092,6 +1105,7 @@ allResults = results.flatMap(r => r.results)`}</pre>
           </div>
           <TableView
             searchResults={searchHistory}
+            validationStatus={validationStatus}
             onExport={handleExport}
             onDelete={(idsToDelete) => {
               // Extract unique history item indices from table row IDs
@@ -1109,7 +1123,7 @@ allResults = results.flatMap(r => r.results)`}</pre>
                 prev.filter((_, index) => !indicesToDelete.has(index))
               )
             }}
-            onResultClick={(rawResult) => {
+            onResultClick={(rawResult, rowId) => {
               // Close table and show search view with highlighted value
               setShowTable(false)
 
@@ -1127,8 +1141,9 @@ allResults = results.flatMap(r => r.results)`}</pre>
                 }
               }
 
-              // Set highlight and scroll to it
+              // Set highlight and track which row it belongs to
               setHighlightText(valuesToHighlight)
+              setCurrentHighlightId(rowId)
 
               // After state update, scroll to highlight
               setTimeout(() => {

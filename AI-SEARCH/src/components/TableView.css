@@ -363,6 +363,25 @@
   }
 }
 
+/* Validation row colors - Liquid Glass style */
+.table-row.validated-correct td {
+  background: rgba(34, 197, 94, 0.08);
+  border-left: 3px solid rgba(34, 197, 94, 0.6);
+}
+
+.table-row.validated-correct:hover td {
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.table-row.validated-incorrect td {
+  background: rgba(239, 68, 68, 0.08);
+  border-left: 3px solid rgba(239, 68, 68, 0.6);
+}
+
+.table-row.validated-incorrect:hover td {
+  background: rgba(239, 68, 68, 0.12);
+}
+
 /* Print styles */
 @media print {
   .table-view {

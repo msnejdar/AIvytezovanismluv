@@ -3,6 +3,7 @@ import './TableView.css'
 
 const TableView = ({
   searchResults = [],
+  validationStatus = {},
   onExport,
   onResultClick,
   onDelete,
@@ -312,10 +313,14 @@ const TableView = ({
             </tr>
           </thead>
           <tbody>
-            {sortedData.map((row, index) => (
+            {sortedData.map((row, index) => {
+              const status = validationStatus[row.id]
+              const rowClass = `table-row ${selectedRows.has(row.id) ? 'selected' : ''} ${status === 'correct' ? 'validated-correct' : ''} ${status === 'incorrect' ? 'validated-incorrect' : ''}`
+
+              return (
               <tr
                 key={row.id}
-                className={`table-row ${selectedRows.has(row.id) ? 'selected' : ''}`}
+                className={rowClass}
               >
                 <td className="select-column">
                   <input
@@ -331,7 +336,7 @@ const TableView = ({
                       {column.key === 'value' ? (
                         <span
                           className="value-cell clickable"
-                          onClick={() => onResultClick?.(row.rawResult)}
+                          onClick={() => onResultClick?.(row.rawResult, row.id)}
                           title="Klikněte pro zvýraznění v dokumentu"
                         >
                           {formatCellValue(row[column.key], column.type)}
@@ -343,7 +348,7 @@ const TableView = ({
                   ))}
                 <td className="actions-column">
                   <button
-                    onClick={() => onResultClick?.(row.rawResult)}
+                    onClick={() => onResultClick?.(row.rawResult, row.id)}
                     className="action-button"
                     title="Zvýraznit v dokumentu"
                   >
@@ -364,7 +369,8 @@ const TableView = ({
                   </button>
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
         

@@ -160,3 +160,73 @@
   scrollbar-width: thin;
   scrollbar-color: rgba(163, 163, 163, 0.4) transparent;
 }
+
+/* Validation buttons - Liquid Glass grayscale style */
+.validation-buttons {
+  position: sticky;
+  top: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 12px 12px 0 12px;
+  margin-bottom: -40px;
+  pointer-events: none;
+}
+
+.validation-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(250, 250, 250, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(163, 163, 163, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  pointer-events: auto;
+}
+
+.validation-btn svg {
+  stroke: var(--glass-gray-600);
+  transition: stroke 0.2s ease;
+}
+
+.validation-btn:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: var(--glass-gray-500);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.validation-btn:hover svg {
+  stroke: var(--glass-gray-800);
+}
+
+.validation-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Correct button specific styles */
+.validation-correct:hover {
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.validation-correct:hover svg {
+  stroke: rgb(34, 197, 94);
+}
+
+/* Incorrect button specific styles */
+.validation-incorrect:hover {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.validation-incorrect:hover svg {
+  stroke: rgb(239, 68, 68);
+}

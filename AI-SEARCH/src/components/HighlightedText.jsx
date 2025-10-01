@@ -6,12 +6,13 @@ import { removeDiacritics } from '../documentNormalizer.js';
  * Component to display text with highlighted search results
  * Supports highlighting multiple values (array) or a single value (string)
  */
-const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) => {
+const HighlightedText = forwardRef(({ text, highlight, showValidation, onValidate, onHighlightClick }, ref) => {
   const containerRef = useRef(null);
   const highlightRefs = useRef([]);
   const highlightsByValue = useRef(new Map()); // Map of value -> refs
   const currentHighlightIndex = useRef(0); // Track which highlight to scroll to next
   const previousHighlight = useRef(highlight);
+  const validationButtonsRef = useRef(null);
 
   // Reset refs BEFORE render if highlight changed (not in useEffect which runs AFTER)
   if (previousHighlight.current !== highlight) {
@@ -199,6 +200,28 @@ const HighlightedText = forwardRef(({ text, highlight, onHighlightClick }, ref) 
 
   return (
     <div className="highlighted-text-container" ref={containerRef}>
+      {showValidation && (
+        <div className="validation-buttons" ref={validationButtonsRef}>
+          <button
+            className="validation-btn validation-correct"
+            onClick={() => onValidate && onValidate(true)}
+            title="Správně"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <button
+            className="validation-btn validation-incorrect"
+            onClick={() => onValidate && onValidate(false)}
+            title="Nesprávně"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      )}
       {parts.map((part, index) => {
         if (part.type === 'highlight') {
           return (
