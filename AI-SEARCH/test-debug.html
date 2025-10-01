@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Debug Claude Response</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      margin: 10px 0;
+      padding: 10px;
+      font-family: monospace;
+      background: #2d2d2d;
+      color: #d4d4d4;
+      border: 1px solid #444;
+    }
+    button {
+      padding: 10px 20px;
+      background: #007acc;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #005a9e;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background: #2d2d2d;
+      border: 1px solid #444;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .label {
+      font-weight: bold;
+      color: #4ec9b0;
+      margin-top: 15px;
+    }
+    .good {
+      color: #4ec9b0;
+    }
+    .bad {
+      color: #f48771;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Debug Claude Response</h1>
+
+  <div class="label">Query (dotaz):</div>
+  <textarea id="query" placeholder="Např: je tam Tabulka identifikačních dokladů? ano/ne">je tam Tabulka identifikačních dokladů Dlužníka? ano/ne</textarea>
+
+  <div class="label">Document (text smlouvy):</div>
+  <textarea id="document" placeholder="Vložte text dokumentu zde..."></textarea>
+
+  <button onclick="testQuery()">Test Query</button>
+
+  <div id="output"></div>
+
+  <script>
+    async function testQuery() {
+      const query = document.getElementById('query').value;
+      const document = document.getElementById('document').value;
+
+      if (!query || !document) {
+        alert('Vyplňte query i document!');
+        return;
+      }
+
+      document.getElementById('output').innerHTML = '<div class="result">⏳ Loading...</div>';
+
+      try {
+        const response = await fetch('/api/debug-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, document })
+        });
+
+        const data = await response.json();
+
+        let html = '<div class="result">';
+        html += '<div class="label">📋 Result Object:</div>';
+        html += JSON.stringify(data.result, null, 2);
+
+        html += '\n\n<div class="label">🎯 Analysis:</div>';
+
+        if (data.result.fullContext) {
+          html += '<div class="good">✅ fullContext DETECTED!</div>';
+          html += `Length: ${data.result.fullContext.length} characters\n`;
+          html += `Preview: ${data.result.fullContext.substring(0, 200)}...\n`;
+        } else {
+          html += '<div class="bad">❌ NO fullContext!</div>';
+          html += 'AI did not return fullContext field\n';
+        }
+
+        html += '\n<div class="label">📊 Answer:</div>';
+        html += JSON.stringify(data.result.answer, null, 2);
+
+        html += '</div>';
+
+        document.getElementById('output').innerHTML = html;
+      } catch (error) {
+        document.getElementById('output').innerHTML =
+          `<div class="result"><div class="bad">❌ Error: ${error.message}</div></div>`;
+      }
+    }
+  </script>
+</body>
+</html>

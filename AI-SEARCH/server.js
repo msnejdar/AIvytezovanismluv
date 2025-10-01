@@ -292,6 +292,26 @@ PRAVIDLA:
   }
 });
 
+// DEBUG endpoint - shows raw Claude response
+app.post('/api/debug-search', async (req, res) => {
+  const { query, document } = req.body;
+
+  if (!query || !document) {
+    return res.status(400).json({ error: 'Query a document jsou povinné' });
+  }
+
+  console.log(`[DEBUG] Testing query: "${query}"`);
+
+  const result = await callClaudeAPI(query, document);
+
+  // Return full debug info
+  res.json({
+    query: query,
+    result: result,
+    instructions: 'Check result.answer and result.fullContext'
+  });
+});
+
 app.post('/api/search', async (req, res) => {
   const { query, document } = req.body;
 
