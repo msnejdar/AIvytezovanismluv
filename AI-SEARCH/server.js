@@ -28,10 +28,19 @@ async function callClaudeAPI(query, document, retries = 3, delay = 1000) {
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
       // Detect yes/no questions (support multiple formats)
-      const isYesNoQuestion = /\b(ano\s+nebo\s+ne|yes\s+or\s+no|ano\/ne|yes\/no|ano\s*\/\s*ne|yes\s*\/\s*no)\b/i.test(query);
+      // Remove word boundaries (\b) because they don't work well with punctuation (?, spaces)
+      const isYesNoQuestion = /(ano\s+nebo\s+ne|yes\s+or\s+no|ano\s*\/\s*ne|yes\s*\/\s*no)/i.test(query);
+
+      console.log('🔍 Checking if yes/no question:', {
+        query: query,
+        isYesNoQuestion: isYesNoQuestion,
+        regexMatches: query.match(/(ano\s+nebo\s+ne|yes\s+or\s+no|ano\s*\/\s*ne|yes\s*\/\s*no)/i)
+      });
 
       if (isYesNoQuestion) {
-        console.log('🎯 YES/NO question detected in query:', query);
+        console.log('🎯 YES/NO question detected!');
+      } else {
+        console.log('📝 Normal question (not yes/no)');
       }
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
