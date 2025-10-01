@@ -98,6 +98,40 @@
   color: var(--glass-gray-500);
 }
 
+.delete-button {
+  padding: 10px 18px;
+  border: 1.5px solid rgba(220, 38, 38, 0.3);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(254, 242, 242, 0.8);
+  color: #991b1b;
+  font-family: var(--font-primary);
+}
+
+.delete-button:hover:not(:disabled) {
+  background: rgba(254, 226, 226, 0.9);
+  border-color: rgba(220, 38, 38, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.1);
+}
+
+.delete-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.delete-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: var(--glass-gray-200);
+  color: var(--glass-gray-500);
+}
+
 .table-container {
   max-height: 600px;
   overflow: auto;

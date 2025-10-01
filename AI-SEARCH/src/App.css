@@ -291,6 +291,33 @@ body {
   line-height: 1.4;
 }
 
+.clear-search-btn {
+  padding: 8px 14px;
+  border: 1.5px solid var(--glass-gray-300);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--glass-white-80);
+  color: var(--glass-gray-700);
+  font-family: var(--font-primary);
+}
+
+.clear-search-btn:hover {
+  background: var(--glass-white);
+  border-color: var(--glass-gray-400);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.clear-search-btn:active {
+  transform: translateY(0);
+}
+
 /* Elegant Search Bar */
 .search-input-wrapper {
   width: 100%;
