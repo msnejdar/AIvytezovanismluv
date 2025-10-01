@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 1024,
+        max_tokens: 2048,
         messages: [{
           role: 'user',
           content: `Analyzuj následující dokument a najdi PŘESNĚ tyto údaje.
@@ -45,19 +45,23 @@ ${document}
 Hledané údaje:
 ${queries.map((q, i) => `${i+1}. ${q}`).join('\n')}
 
-Vrať JSON:
+Vrať JSON ve formátu:
 {
   "results": [
-    {"query": "Rodné číslo", "value": "940819/1011"},
-    {"query": "Datum narození", "value": "19.8.1994"},
+    {"query": "Rodné číslo", "type": "single", "value": "940819/1011"},
+    {"query": "Všechna parcelní čísla", "type": "multiple", "values": [
+      {"label": "Parcela 1", "value": "123/45"},
+      {"label": "Parcela 2", "value": "678/90"}
+    ]},
     ...
   ]
 }
 
 PRAVIDLA:
-- Pro každou hledanou položku vrať objekt s "query" (přesný název) a "value" (nalezená hodnota)
-- Pokud hodnotu nenajdeš, vrať "value": "Nenalezeno"
-- Vrať POUZE samotné hodnoty, žádné vysvětlení
+- Pokud dotaz hledá JEDNU hodnotu (např. "rodné číslo Petra"), vrať: {"query": "...", "type": "single", "value": "hodnota"}
+- Pokud dotaz hledá VÍCE hodnot (např. "všechna parcelní čísla", "všechny strany"), vrať: {"query": "...", "type": "multiple", "values": [{"label": "popisek", "value": "hodnota"}, ...]}
+- Pokud hodnotu nenajdeš, vrať "type": "single", "value": "Nenalezeno"
+- Vrať POUZE JSON, žádný další text
 - Zachovej PŘESNÉ názvy dotazů jak jsou uvedeny výše`
         }]
       })
@@ -67,26 +71,55 @@ PRAVIDLA:
 
     if (response.ok) {
       const text = data.content?.[0]?.text?.trim();
-      let results;
+      let parsedResults;
 
       try {
         const parsed = JSON.parse(text);
-        results = parsed.results;
+        parsedResults = parsed.results;
       } catch (parseError) {
         console.error('Failed to parse batch response:', text);
         // Fallback: return "Nenalezeno" for all
-        results = queries.map(q => ({ query: q, value: 'Nenalezeno' }));
+        parsedResults = queries.map(q => ({ query: q, type: 'single', value: 'Nenalezeno' }));
       }
 
-      // Ensure all queries have results
-      const resultMap = new Map(results.map(r => [r.query, r.value]));
-      const completeResults = queries.map(q => ({
-        query: q,
-        value: resultMap.get(q) || 'Nenalezeno'
-      }));
+      // Process results - convert to flat array with type info
+      const processedResults = [];
 
-      console.log(`[API] Batch results: ${completeResults.length} položek`);
-      return res.status(200).json({ results: completeResults });
+      parsedResults.forEach(result => {
+        if (result.type === 'multiple' && result.values && Array.isArray(result.values)) {
+          // Multiple values - create separate entry for each
+          result.values.forEach(item => {
+            processedResults.push({
+              query: result.query,
+              type: 'multiple',
+              label: item.label,
+              value: item.value
+            });
+          });
+        } else {
+          // Single value
+          processedResults.push({
+            query: result.query,
+            type: 'single',
+            value: result.value || 'Nenalezeno'
+          });
+        }
+      });
+
+      // Ensure all queries have at least one result
+      queries.forEach(q => {
+        const hasResult = processedResults.some(r => r.query === q);
+        if (!hasResult) {
+          processedResults.push({
+            query: q,
+            type: 'single',
+            value: 'Nenalezeno'
+          });
+        }
+      });
+
+      console.log(`[API] Batch results: ${processedResults.length} položek`);
+      return res.status(200).json({ results: processedResults });
     } else {
       console.error('Claude API error:', data);
       return res.status(500).json({ error: 'Chyba při vyhledávání', details: data.error });

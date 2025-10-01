@@ -205,13 +205,30 @@ function AppMain() {
 
         // Convert batch results to individual history items
         data.results.forEach(result => {
-          results.push({
-            query: result.query,
-            category: queryCategoryMap.get(result.query) || 'Ostatní',
-            answer: { type: 'single', value: result.value },
-            timestamp: new Date().toISOString(),
-            confidence: 0.95
-          })
+          // Handle both single and multiple results
+          if (result.type === 'multiple' && result.label) {
+            // Multiple result entry - has label
+            results.push({
+              query: result.query,
+              category: queryCategoryMap.get(result.query) || 'Ostatní',
+              answer: {
+                type: 'single',
+                value: result.value,
+                label: result.label
+              },
+              timestamp: new Date().toISOString(),
+              confidence: 0.95
+            })
+          } else {
+            // Single result entry
+            results.push({
+              query: result.query,
+              category: queryCategoryMap.get(result.query) || 'Ostatní',
+              answer: { type: 'single', value: result.value },
+              timestamp: new Date().toISOString(),
+              confidence: 0.95
+            })
+          }
         })
 
         // Pause between batches
