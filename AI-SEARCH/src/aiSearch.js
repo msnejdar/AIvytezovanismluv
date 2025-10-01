@@ -44,12 +44,14 @@ export async function aiSearch(documentText, query) {
 
     logger.info('AI_SEARCH', 'Search completed', {
       success: true,
-      resultLength: result.answer?.length || 0
+      resultLength: result.answer?.length || 0,
+      hasFullContext: !!result.fullContext
     });
 
     return {
       success: true,
       answer: result.answer,
+      fullContext: result.fullContext, // For yes/no questions
       confidence: result.confidence || 0.9,
       query: query,
       timestamp: new Date().toISOString()

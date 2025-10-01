@@ -27,6 +27,9 @@ app.get('/', (req, res) => {
 async function callClaudeAPI(query, document, retries = 3, delay = 1000) {
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
+      // Detect yes/no questions
+      const isYesNoQuestion = /\b(ano\s+nebo\s+ne|yes\s+or\s+no)\b/i.test(query);
+
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -36,10 +39,32 @@ async function callClaudeAPI(query, document, retries = 3, delay = 1000) {
         },
         body: JSON.stringify({
           model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 512,
+          max_tokens: 1024,
           messages: [{
             role: 'user',
-            content: `Analyzuj následující text a najdi PŘESNĚ to, co požaduje uživatel.
+            content: isYesNoQuestion ? `Analyzuj následující text a odpověz na ano/ne otázku uživatele.
+
+DŮLEŽITÉ: Vrať JSON ve formátu: {"answer": "Ano/Ne", "fullContext": "celý relevantní text"}
+
+Uživatel se ptá: "${query}"
+
+Text dokumentu:
+${document}
+
+INSTRUKCE:
+- "answer": vrať POUZE "Ano" nebo "Ne" (bez uvozovek v hodnotě)
+- "fullContext": pokud je odpověď "Ano", najdi a vrať CELÉ znění relevantní části textu (celý odstavec/sekci)
+- Pokud je odpověď "Ne", "fullContext" může být prázdný string ""
+- Vrať POUZE validní JSON, žádný další text
+
+PŘÍKLADY:
+Dotaz: "Existuje zastavní právo? Ano nebo ne"
+Odpověď: {"answer": "Ano", "fullContext": "Článek III - Zastavní právo. Dlužník se zavazuje zřídit ve prospěch věřitele zastavní právo k nemovitosti zapsané na LV č. 1234..."}
+
+Dotaz: "Je prodávající fyzická osoba? Ano nebo ne"
+Odpověď: {"answer": "Ne", "fullContext": "Prodávající: ACME s.r.o., IČO: 12345678"}
+
+Tvoje odpověď (pouze JSON):` : `Analyzuj následující text a najdi PŘESNĚ to, co požaduje uživatel.
 
 DŮLEŽITÉ: Vrať POUZE samotnou odpověď, nic víc. Žádný vysvětlující text.
 
@@ -69,8 +94,28 @@ Tvoje odpověď:`
 
       if (response.ok) {
         // Extract answer from Claude response
-        const answer = data.content?.[0]?.text?.trim() || 'Nenalezeno';
-        return { success: true, answer };
+        const rawText = data.content?.[0]?.text?.trim() || 'Nenalezeno';
+
+        // Try to parse as JSON (for yes/no questions)
+        if (rawText.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(rawText);
+            if (parsed.answer && parsed.fullContext !== undefined) {
+              // Yes/No question response
+              return {
+                success: true,
+                answer: parsed.answer,
+                fullContext: parsed.fullContext
+              };
+            }
+          } catch (e) {
+            // If JSON parsing fails, treat as normal answer
+            console.log('JSON parse failed, treating as normal answer');
+          }
+        }
+
+        // Normal question response (backward compatible)
+        return { success: true, answer: rawText };
       } else {
         // Pokud je API přetížené a máme ještě pokusy, zkusíme znovu
         if (data.error?.type === 'overloaded_error' && attempt < retries - 1) {
@@ -258,7 +303,15 @@ app.post('/api/search', async (req, res) => {
 
   if (result.success) {
     console.log(`[API] Odpověď: "${result.answer.substring(0, 100)}..."`);
-    res.json({ answer: result.answer, confidence: 0.95 });
+    // Include fullContext if present (for yes/no questions)
+    const response = {
+      answer: result.answer,
+      confidence: 0.95
+    };
+    if (result.fullContext !== undefined) {
+      response.fullContext = result.fullContext;
+    }
+    res.json(response);
   } else {
     const status = result.status || 500;
     console.error(`[API] Chyba:`, result.error);

@@ -148,15 +148,30 @@ function AppMain() {
         setSearchAnswer(result.answer)
 
         // Extract values for highlighting
-        const valuesToHighlight = result.answer.type === 'multiple'
-          ? result.answer.results.map(r => r.value)
-          : [result.answer.value];
+        let valuesToHighlight;
+
+        // Check if this is a yes/no question with fullContext
+        if (result.fullContext) {
+          // Yes/No question: highlight fullContext, but show answer in table
+          valuesToHighlight = [result.fullContext];
+        } else if (result.answer.type === 'multiple') {
+          // Multiple results
+          valuesToHighlight = result.answer.results.map(r => r.value);
+        } else if (result.answer.type === 'single') {
+          // Single result
+          valuesToHighlight = [result.answer.value];
+        } else {
+          // Fallback for simple string answers
+          valuesToHighlight = [result.answer];
+        }
+
         setHighlightText(valuesToHighlight)
 
         // Add to history for table view
         const historyItem = {
           query: searchQuery,
-          answer: result.answer,
+          answer: result.answer, // Table shows this (just "Ano/Ne" for yes/no questions)
+          fullContext: result.fullContext, // Store fullContext for highlight reference
           timestamp: new Date().toISOString(),
           confidence: result.confidence
         }
@@ -1137,7 +1152,12 @@ allResults = results.flatMap(r => r.results)`}</pre>
 
               // Extract value(s) to highlight
               let valuesToHighlight = []
-              if (rawResult.answer) {
+
+              // Check if this is a yes/no question with fullContext
+              if (rawResult.fullContext) {
+                // Yes/No question: highlight fullContext
+                valuesToHighlight = [rawResult.fullContext]
+              } else if (rawResult.answer) {
                 if (rawResult.answer.type === 'multiple') {
                   valuesToHighlight = rawResult.answer.results.map(r => r.value)
                 } else if (rawResult.answer.type === 'single') {
