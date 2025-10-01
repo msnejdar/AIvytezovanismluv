@@ -453,8 +453,23 @@ function AppMain() {
                     <div className="liquid-glass-wave" style={{
                       '--wave-height': `${(batchProgress.current / batchProgress.total) * 100}%`
                     }}>
-                      <div className="wave-surface"></div>
-                      <div className="wave-reflection"></div>
+                      {/* Background wave layers for depth */}
+                      <div className="wave-layer wave-layer-1"></div>
+                      <div className="wave-layer wave-layer-2"></div>
+                      <div className="wave-layer wave-layer-3"></div>
+                      <div className="wave-layer wave-layer-4"></div>
+
+                      {/* Liquid fill with surface */}
+                      <div className="liquid-fill">
+                        <div className="liquid-surface"></div>
+                        <div className="liquid-body"></div>
+                        <div className="turbulence"></div>
+                      </div>
+
+                      {/* Light effects */}
+                      <div className="caustics"></div>
+                      <div className="fresnel-effect"></div>
+                      <div className="light-reflection"></div>
                     </div>
                   </div>
                   <div className="progress-text">
