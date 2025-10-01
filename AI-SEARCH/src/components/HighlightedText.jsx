@@ -1,4 +1,5 @@
-import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
+import { useEffect, useRef, useImperativeHandle, forwardRef, useState as React_useState } from 'react';
+import * as React from 'react';
 import './HighlightedText.css';
 import { removeDiacritics } from '../documentNormalizer.js';
 
@@ -13,6 +14,7 @@ const HighlightedText = forwardRef(({ text, highlight, showValidation, onValidat
   const currentHighlightIndex = useRef(0); // Track which highlight to scroll to next
   const previousHighlight = useRef(highlight);
   const validationButtonsRef = useRef(null);
+  const [buttonPosition, setButtonPosition] = React.useState({ top: 0, left: 0 });
 
   // Reset refs BEFORE render if highlight changed (not in useEffect which runs AFTER)
   if (previousHighlight.current !== highlight) {
@@ -21,6 +23,22 @@ const HighlightedText = forwardRef(({ text, highlight, showValidation, onValidat
     currentHighlightIndex.current = 0;
     previousHighlight.current = highlight;
   }
+
+  // Position validation buttons above first highlight
+  useEffect(() => {
+    if (showValidation && highlightRefs.current.length > 0) {
+      const firstHighlight = highlightRefs.current[0];
+      if (firstHighlight && containerRef.current) {
+        const highlightRect = firstHighlight.getBoundingClientRect();
+        const containerRect = containerRef.current.getBoundingClientRect();
+
+        setButtonPosition({
+          top: highlightRect.top - containerRect.top - 50, // 50px above highlight
+          left: highlightRect.left - containerRect.left
+        });
+      }
+    }
+  }, [showValidation, highlight]);
 
   // Scroll to next highlight in cycle
   const scrollToNextHighlight = () => {
@@ -201,7 +219,15 @@ const HighlightedText = forwardRef(({ text, highlight, showValidation, onValidat
   return (
     <div className="highlighted-text-container" ref={containerRef}>
       {showValidation && (
-        <div className="validation-buttons" ref={validationButtonsRef}>
+        <div
+          className="validation-buttons"
+          ref={validationButtonsRef}
+          style={{
+            position: 'absolute',
+            top: `${buttonPosition.top}px`,
+            left: `${buttonPosition.left}px`
+          }}
+        >
           <button
             className="validation-btn validation-correct"
             onClick={() => onValidate && onValidate(true)}

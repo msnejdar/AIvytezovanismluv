@@ -13,6 +13,7 @@
   word-wrap: break-word;
   overflow-y: auto;
   overflow-x: hidden;
+  position: relative;
 }
 
 /* Highlighted mark - Gold/Yellow Liquid Glass style */
@@ -163,16 +164,11 @@
 
 /* Validation buttons - Liquid Glass grayscale style */
 .validation-buttons {
-  position: sticky;
-  top: 0;
-  right: 0;
+  position: absolute;
   z-index: 100;
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
-  padding: 12px 12px 0 12px;
-  margin-bottom: -40px;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .validation-btn {
