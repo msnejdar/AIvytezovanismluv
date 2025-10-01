@@ -44,27 +44,37 @@ async function callClaudeAPI(query, document, retries = 3, delay = 1000) {
             role: 'user',
             content: isYesNoQuestion ? `Analyzuj následující text a odpověz na ano/ne otázku uživatele.
 
-DŮLEŽITÉ: Vrať JSON ve formátu: {"answer": "Ano/Ne", "fullContext": "celý relevantní text"}
+KRITICKY DŮLEŽITÉ: Vrať JSON ve formátu níže. "fullContext" MUSÍ obsahovat CELÝ relevantní text z dokumentu, NE jen "Ano/Ne"!
 
 Uživatel se ptá: "${query}"
 
 Text dokumentu:
 ${document}
 
-INSTRUKCE:
-- "answer": vrať POUZE "Ano" nebo "Ne" (bez uvozovek v hodnotě)
-- "fullContext": pokud je odpověď "Ano", najdi a vrať CELÉ znění relevantní části textu (celý odstavec/sekci)
-- Pokud je odpověď "Ne", "fullContext" může být prázdný string ""
-- Vrať POUZE validní JSON, žádný další text
+INSTRUKCE PRO "answer":
+- Vrať POUZE "Ano" nebo "Ne"
+- Žádný další text
+
+INSTRUKCE PRO "fullContext":
+- Pokud je odpověď "Ano": najdi v dokumentu CELOU sekci/odstavec/článek, který potvrzuje odpověď
+- NIKDY nevracej jen "Ano" nebo "Ne" do fullContext
+- Zkopíruj KOMPLETNÍ relevantní text z dokumentu (může být dlouhý, to je OK)
+- Pokud je odpověď "Ne": zkopíruj část dokumentu, která to dokládá, NEBO prázdný string ""
+
+ŠPATNĚ ❌:
+{"answer": "Ano", "fullContext": "Ano"}
+
+SPRÁVNĚ ✅:
+{"answer": "Ano", "fullContext": "Článek III - Zastavní právo\n\nDlužník se zavazuje zřídit ve prospěch věřitele zastavní právo k následujícím nemovitostem:\n- Parcela č. 123/45 v k.ú. Praha\n- Budova čp. 678 na parcele č. 123/45\n\nZastavní právo bude zapsáno do katastru nemovitostí..."}
 
 PŘÍKLADY:
-Dotaz: "Existuje zastavní právo? Ano nebo ne"
-Odpověď: {"answer": "Ano", "fullContext": "Článek III - Zastavní právo. Dlužník se zavazuje zřídit ve prospěch věřitele zastavní právo k nemovitosti zapsané na LV č. 1234..."}
+Dotaz: "Je tam zastavní právo? Ano nebo ne"
+Odpověď: {"answer": "Ano", "fullContext": "[CELÝ text článku/sekce o zastavním právu z dokumentu - i když je to 10 řádků]"}
 
 Dotaz: "Je prodávající fyzická osoba? Ano nebo ne"
-Odpověď: {"answer": "Ne", "fullContext": "Prodávající: ACME s.r.o., IČO: 12345678"}
+Odpověď: {"answer": "Ne", "fullContext": "Prodávající: ACME s.r.o., IČO: 12345678, se sídlem Praha 1"}
 
-Tvoje odpověď (pouze JSON):` : `Analyzuj následující text a najdi PŘESNĚ to, co požaduje uživatel.
+Tvoje odpověď (pouze validní JSON):` : `Analyzuj následující text a najdi PŘESNĚ to, co požaduje uživatel.
 
 DŮLEŽITÉ: Vrať POUZE samotnou odpověď, nic víc. Žádný vysvětlující text.
 
