@@ -357,7 +357,6 @@ function AppMain() {
         <div className="docs-header-content">
           <div className="docs-brand">
             <h1 className="docs-title">AI Contract Intelligence</h1>
-            <span className="docs-badge">Proof of Concept</span>
           </div>
           <button
             onClick={() => setShowDocs(!showDocs)}
