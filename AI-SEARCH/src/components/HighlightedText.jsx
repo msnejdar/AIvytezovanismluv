@@ -15,6 +15,7 @@ const HighlightedText = forwardRef(({ text, highlight, showValidation, onValidat
   const previousHighlight = useRef(highlight);
   const validationButtonsRef = useRef(null);
   const [buttonPosition, setButtonPosition] = React.useState({ top: 0, left: 0 });
+  const lastScrolledHighlight = useRef(null); // Track which element was last scrolled to
 
   // Reset refs BEFORE render if highlight changed (not in useEffect which runs AFTER)
   if (previousHighlight.current !== highlight) {
@@ -24,16 +25,26 @@ const HighlightedText = forwardRef(({ text, highlight, showValidation, onValidat
     previousHighlight.current = highlight;
   }
 
-  // Position validation buttons above first highlight
+  // Position validation buttons above the currently scrolled-to highlight
   useEffect(() => {
-    if (showValidation && highlightRefs.current.length > 0) {
+    if (showValidation && lastScrolledHighlight.current && containerRef.current) {
+      const targetHighlight = lastScrolledHighlight.current;
+      const highlightRect = targetHighlight.getBoundingClientRect();
+      const containerRect = containerRef.current.getBoundingClientRect();
+
+      setButtonPosition({
+        top: highlightRect.top - containerRect.top - 50, // 50px above highlight
+        left: highlightRect.left - containerRect.left
+      });
+    } else if (showValidation && highlightRefs.current.length > 0 && containerRef.current) {
+      // Fallback: use first highlight if no scroll happened yet
       const firstHighlight = highlightRefs.current[0];
-      if (firstHighlight && containerRef.current) {
+      if (firstHighlight) {
         const highlightRect = firstHighlight.getBoundingClientRect();
         const containerRect = containerRef.current.getBoundingClientRect();
 
         setButtonPosition({
-          top: highlightRect.top - containerRect.top - 50, // 50px above highlight
+          top: highlightRect.top - containerRect.top - 50,
           left: highlightRect.left - containerRect.left
         });
       }
@@ -103,7 +114,10 @@ const HighlightedText = forwardRef(({ text, highlight, showValidation, onValidat
 
       // Reset cycle and scroll to first
       currentHighlightIndex.current = 0;
-      refsToAnimate[0].scrollIntoView({
+      const targetElement = refsToAnimate[0];
+      lastScrolledHighlight.current = targetElement; // Track which highlight we scrolled to
+
+      targetElement.scrollIntoView({
         behavior: 'smooth',
         block: 'center'
       });
