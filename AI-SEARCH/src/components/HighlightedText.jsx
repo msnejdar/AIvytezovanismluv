@@ -15,7 +15,7 @@ const HighlightedText = forwardRef(({ text, highlight, showValidation, onValidat
   const previousHighlight = useRef(highlight);
   const validationButtonsRef = useRef(null);
   const [buttonPosition, setButtonPosition] = React.useState({ top: 0, left: 0 });
-  const lastScrolledHighlight = useRef(null); // Track which element was last scrolled to
+  const [scrolledHighlightKey, setScrolledHighlightKey] = React.useState(0); // Trigger for position update
 
   // Reset refs BEFORE render if highlight changed (not in useEffect which runs AFTER)
   if (previousHighlight.current !== highlight) {
@@ -25,31 +25,42 @@ const HighlightedText = forwardRef(({ text, highlight, showValidation, onValidat
     previousHighlight.current = highlight;
   }
 
-  // Position validation buttons above the currently scrolled-to highlight
+  // Position validation buttons - runs AFTER scroll when scrolledHighlightKey changes
   useEffect(() => {
-    if (showValidation && lastScrolledHighlight.current && containerRef.current) {
-      const targetHighlight = lastScrolledHighlight.current;
-      const highlightRect = targetHighlight.getBoundingClientRect();
-      const containerRect = containerRef.current.getBoundingClientRect();
+    if (!showValidation || !containerRef.current) return;
 
-      setButtonPosition({
-        top: highlightRect.top - containerRect.top - 50, // 50px above highlight
-        left: highlightRect.left - containerRect.left
+    // Use the FIRST matching highlight (the one we scrolled to)
+    const matchingHighlights = [];
+
+    if (highlight && Array.isArray(highlight) && highlight.length > 0) {
+      // Find highlights that match the current search value(s)
+      highlight.forEach(searchValue => {
+        const normalizedSearchValue = removeDiacritics(searchValue).toLowerCase();
+        let refs = highlightsByValue.current.get(searchValue);
+        if (!refs || refs.length === 0) {
+          refs = highlightsByValue.current.get(normalizedSearchValue);
+        }
+        if (refs && refs.length > 0) {
+          matchingHighlights.push(...refs);
+        }
       });
-    } else if (showValidation && highlightRefs.current.length > 0 && containerRef.current) {
-      // Fallback: use first highlight if no scroll happened yet
-      const firstHighlight = highlightRefs.current[0];
-      if (firstHighlight) {
-        const highlightRect = firstHighlight.getBoundingClientRect();
+    }
+
+    const targetHighlight = matchingHighlights[0] || highlightRefs.current[0];
+
+    if (targetHighlight) {
+      // Small delay to wait for scroll to complete
+      setTimeout(() => {
+        const highlightRect = targetHighlight.getBoundingClientRect();
         const containerRect = containerRef.current.getBoundingClientRect();
 
         setButtonPosition({
           top: highlightRect.top - containerRect.top - 50,
           left: highlightRect.left - containerRect.left
         });
-      }
+      }, 100);
     }
-  }, [showValidation, highlight]);
+  }, [showValidation, highlight, scrolledHighlightKey]);
 
   // Scroll to next highlight in cycle
   const scrollToNextHighlight = () => {
@@ -115,12 +126,16 @@ const HighlightedText = forwardRef(({ text, highlight, showValidation, onValidat
       // Reset cycle and scroll to first
       currentHighlightIndex.current = 0;
       const targetElement = refsToAnimate[0];
-      lastScrolledHighlight.current = targetElement; // Track which highlight we scrolled to
 
       targetElement.scrollIntoView({
         behavior: 'smooth',
         block: 'center'
       });
+
+      // Trigger position update AFTER scroll
+      setTimeout(() => {
+        setScrolledHighlightKey(prev => prev + 1);
+      }, 200);
 
       // Blink animation for all matching highlights
       refsToAnimate.forEach((el, index) => {
